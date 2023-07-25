@@ -1,0 +1,134 @@
+%global krun_opts %{nil}
+%global wasmedge_opts %{nil}
+%global wasmtime_opts %{nil}
+%global wasm_support disabled
+
+%if 0%{?fedora} >= 37
+%ifarch aarch64 || x86_64
+%global krun_support enabled
+%global krun_opts --with-libkrun
+%endif
+%endif
+
+%ifarch aarch64 || x86_64
+%global wasm_support enabled
+%global wasmedge_support enabled
+%global wasmedge_opts --with-wasmedge
+%endif
+
+# FIXME: wasmtime builds for rhel are currently broken on copr probably
+# because of an older rust compiler.
+%if 0%{?fedora}
+%ifnarch %{ix86} || ppc64le
+%global wasm_support enabled
+%global wasmtime_support enabled
+%global wasmtime_opts --with-wasmtime
+%endif
+%endif
+
+Summary: OCI runtime written in C
+Name: crun
+Epoch: 101
+#FIXME: copr build env replaces this with a strange version number
+#Version: @RPM_VERSION@
+Version: 0.0
+%define build_timestamp %{lua: print(os.date("%Y%m%d%H%M%S"))}
+Release: %{build_timestamp}.@GIT_COMMIT_ID@%{?dist}
+# `make tarball-prep` will generate this from HEAD commit in the repo root dir
+Source0: %{name}-HEAD.tar.gz
+License: GPLv2+
+URL: https://github.com/containers/%{name}
+BuildRequires: autoconf
+BuildRequires: automake
+BuildRequires: gcc
+BuildRequires: git-core
+BuildRequires: libcap-devel
+%if "%{krun_support}" == "enabled"
+BuildRequires: libkrun-devel
+%endif
+BuildRequires: systemd-devel
+BuildRequires: yajl-devel
+BuildRequires: libseccomp-devel
+BuildRequires: python3-libmount
+BuildRequires: libtool
+BuildRequires: go-md2man
+%if "%{wasmedge_support}" == "enabled"
+BuildRequires: wasmedge-devel
+%endif
+%if "%{wasmtime_support}" == "enabled"
+BuildRequires: wasmtime-c-api-devel
+%endif
+%if 0%{?rhel} == 8
+BuildRequires: python3
+%else
+BuildRequires: python
+%endif
+Provides: oci-runtime
+
+%description
+%{name} is a OCI runtime
+
+%if "%{krun_support}" == "enabled"
+%package krun
+Summary: %{name} with libkrun support
+Requires: libkrun
+Requires: %{name} = %{epoch}:%{version}-%{release}
+Provides: krun = %{epoch}:%{version}-%{release}
+
+%description krun
+krun is a symlink to the %{name} binary, with libkrun as an additional dependency.
+%endif
+
+%if "%{wasm_support}" == "enabled"
+%package wasm
+Summary: %{name} with wasm support
+Requires: %{name} = %{epoch}:%{version}-%{release}
+Requires: wasm-library
+Recommends: wasmedge
+
+%description wasm
+%{name}-wasm is a symlink to the %{name} binary, with wasm as an additional dependency.
+%endif
+
+%prep
+%autosetup -Sgit -n %{name}-HEAD
+
+%build
+./autogen.sh
+./configure --disable-silent-rules %{krun_opts} %{wasmedge_opts} %{wasmtime_opts}
+%make_build
+
+%install
+# FIXME: make_install no longer finds files as expected,
+# so need to run install steps explicitly
+#%%make_install
+install -dp %{buildroot}%{_bindir}
+install -Dp -m0755 %{name} %{buildroot}%{_bindir}
+install -dp %{buildroot}%{_mandir}/man1
+install -Dp -m0644 %{name}.1 %{buildroot}%{_mandir}/man1
+rm -rf %{buildroot}%{_usr}/lib*
+
+%if "%{krun_support}" == "enabled"
+ln -s %{_bindir}/%{name} %{buildroot}%{_bindir}/krun
+%endif
+
+%if "%{wasm_support}" == "enabled"
+ln -s %{_bindir}/%{name} %{buildroot}%{_bindir}/%{name}-wasm
+%endif
+
+%files
+%license COPYING
+%{_bindir}/%{name}
+%{_mandir}/man1/*
+
+%if "%{krun_support}" == "enabled"
+%files krun
+%license COPYING
+%{_bindir}/krun
+%endif
+
+%if "%{wasm_support}" == "enabled"
+%files wasm
+%license COPYING
+%{_bindir}/%{name}-wasm
+%endif
