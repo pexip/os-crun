@@ -1,0 +1,36 @@
+From 60296f112fddc74f4926f8ca6f6e1ef7a61ef5b9 Mon Sep 17 00:00:00 2001
+From: Giuseppe Scrivano <gscrivan@redhat.com>
+Date: Tue, 26 Sep 2023 11:51:19 +0200
+Subject: [PATCH] utils: fix ignore ENOTSUP when chmod a symlink
+
+when ENOTSUP is encountered we must continue copying the other files,
+not doing an early return.
+
+commit 57262a2710c83fa08767f0ce3ba7a80993515bb2 introduced the
+regression with the Podman CI.
+
+Signed-off-by: Giuseppe Scrivano <gscrivan@redhat.com>
+
+Origin: upstream, https://github.com/containers/crun/commit/14afa8a46e2e83608a3a219402bce8ea8d071192
+Bug: https://github.com/containers/crun/issues/1308
+Bug-Debian: https://bugs.debian.org/1053821
+---
+ src/libcrun/utils.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/libcrun/utils.c b/src/libcrun/utils.c
+index e5a82be..74bcf62 100644
+--- a/src/libcrun/utils.c
++++ b/src/libcrun/utils.c
+@@ -2081,7 +2081,7 @@ copy_recursive_fd_to_fd (int srcdirfd, int dfd, const char *srcname, const char
+         {
+           /* If the operation fails with ENOTSUP we are dealing with a symlink, so ignore it.  */
+           if (errno == ENOTSUP)
+-            return 0;
++            continue;
+ 
+           if (UNLIKELY (ret < 0))
+             return crun_make_error (err, errno, "chmod `%s/%s`", destname, de->d_name);
+-- 
+2.39.2
+

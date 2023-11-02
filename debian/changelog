@@ -1,14 +1,12 @@
-crun (1.8.1-1pexip2) pexip-bookworm; urgency=medium
+crun (1.8.1-1+deb12u1) bookworm; urgency=medium
 
-  * Rebuild for bookworm
+  * Backport two commits from upstream ("ignore ENOTSUP when chmod a
+    symlink"), that restore containers with systemd as their init system, when
+    running under Linux >= v6.6 and >= v6.1.55, i.e. bookworm's current stable
+    kernel. (Closes: #1053821)
+  * Move myself to Maintainer, and Dmitry to Uploaders.
 
- -- Mark Hymers <mark.hymers@pexip.com>  Tue, 05 Dec 2023 14:24:31 +0000
-
-crun (1.8.1-1pexip1) pexip; urgency=medium
-
-  * Prepare Pexip packaging
-
- -- John-Mark Bell <jmb@pexip.com>  Tue, 25 Jul 2023 11:08:55 +0000
+ -- Faidon Liambotis <paravoid@debian.org>  Thu, 02 Nov 2023 18:52:46 +0200
 
 crun (1.8.1-1) unstable; urgency=medium
 

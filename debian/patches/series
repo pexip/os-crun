@@ -1,1 +1,2 @@
-no-subreaper-for-prestart-hooks.patch
+utils-ignore-ENOTSUP-when-chmod-a-symlink.patch
+utils-fix-ignore-ENOTSUP-when-chmod-a-symlink.patch
