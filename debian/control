@@ -2,9 +2,9 @@ Source: crun
 Section: admin
 Priority: optional
 Standards-Version: 4.6.2
-Maintainer: Dmitry Smirnov <onlyjob@debian.org>
+Maintainer: Faidon Liambotis <paravoid@debian.org>
 Uploaders:
- Faidon Liambotis <paravoid@debian.org>,
+ Dmitry Smirnov <onlyjob@debian.org>,
  Reinhard Tartler <siretart@tauware.de>,
 Build-Depends:
  automake,

@@ -1,3 +1,13 @@
+crun (1.8.1-1+deb12u1) bookworm; urgency=medium
+
+  * Backport two commits from upstream ("ignore ENOTSUP when chmod a
+    symlink"), that restore containers with systemd as their init system, when
+    running under Linux >= v6.6 and >= v6.1.55, i.e. bookworm's current stable
+    kernel. (Closes: #1053821)
+  * Move myself to Maintainer, and Dmitry to Uploaders.
+
+ -- Faidon Liambotis <paravoid@debian.org>  Thu, 02 Nov 2023 18:52:46 +0200
+
 crun (1.8.1-1) unstable; urgency=medium
 
   * New bugfix upstream release.
