@@ -1,3 +1,9 @@
+crun (1.8.1-1+deb12u1pexip1) pexip-bookworm; urgency=medium
+
+  * New upstream release.
+
+ -- Mark Hymers <mark.hymers@pexip.com>  Fri, 08 Dec 2023 17:38:45 +0000
+
 crun (1.8.1-1+deb12u1) bookworm; urgency=medium
 
   * Backport two commits from upstream ("ignore ENOTSUP when chmod a
