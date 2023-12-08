@@ -3,9 +3,9 @@ Section: admin
 Priority: optional
 Standards-Version: 4.6.2
 Maintainer: Pexip AS <packaging@pexip.com>
-XSBC-Pexip-Original-Maintainer: Dmitry Smirnov <onlyjob@debian.org>
+XSBC-Pexip-Original-Maintainer: Faidon Liambotis <paravoid@debian.org>
 XSBC-Pexip-Original-Uploaders:
- Faidon Liambotis <paravoid@debian.org>,
+ Dmitry Smirnov <onlyjob@debian.org>,
  Reinhard Tartler <siretart@tauware.de>,
 Build-Depends:
  automake,
