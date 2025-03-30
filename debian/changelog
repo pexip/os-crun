@@ -1,12 +1,186 @@
-crun (1.8.1-1+deb12u1) bookworm; urgency=medium
+crun (1.21-1) unstable; urgency=medium
 
-  * Backport two commits from upstream ("ignore ENOTSUP when chmod a
-    symlink"), that restore containers with systemd as their init system, when
-    running under Linux >= v6.6 and >= v6.1.55, i.e. bookworm's current stable
-    kernel. (Closes: #1053821)
+  * New upstream release.
+    - Drop patch tests-fix-test_resources_unified_invalid_controller, merged
+      upstream.
+  * Bump Standards-Version to 4.7.2.
+
+ -- Faidon Liambotis <paravoid@debian.org>  Sun, 30 Mar 2025 18:33:19 +0300
+
+crun (1.20-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Build-Depend on libcriu-dev only on criu's supported architectures,
+    currently: amd64 arm64 ppc64el s390x. (Closes: #1097132)
+  * Add @recommends@ to debian/tests/control, to make sure libcriu2 is
+    installed on supported architectures during test time.
+  * Add iptables to autopkgtest Depends, as it's necessary for the criu tests.
+  * Build tests/init explicitly, as we need this for autopkgtests through
+    build-needed. This partially rolls back upstream 3c5292b.
+  * Add an upstream patch to fix a test regression in test_resources.py
+    introduced by a new better error message in 1.20.
+
+ -- Faidon Liambotis <paravoid@debian.org>  Sat, 22 Feb 2025 13:31:01 +0200
+
+crun (1.19.1-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Build-Depend on golang-github-opencontainers-specs-dev (>= 1.2.0-2~),
+      needed for the new CPU affinity functionality. (FTBFSes without it).
+  * Enable checkpoint/restore (e.g. through "podman container checkpoint"), by
+    build depending on the (now split off) libcriu-dev package, and add
+    Recommends for libcriu2. Note that podman also requires the criu package.
+    (Closes: #1008249)
+
+ -- Faidon Liambotis <paravoid@debian.org>  Sat, 04 Jan 2025 12:10:18 +0200
+
+crun (1.18.2-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Faidon Liambotis <paravoid@debian.org>  Thu, 31 Oct 2024 21:23:39 +0200
+
+crun (1.18.1-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Faidon Liambotis <paravoid@debian.org>  Wed, 30 Oct 2024 13:55:01 +0200
+
+crun (1.18-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Faidon Liambotis <paravoid@debian.org>  Tue, 22 Oct 2024 16:15:39 +0300
+
+crun (1.17-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Faidon Liambotis <paravoid@debian.org>  Mon, 09 Sep 2024 16:43:26 +0300
+
+crun (1.16.1-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Faidon Liambotis <paravoid@debian.org>  Wed, 14 Aug 2024 12:12:06 +0300
+
+crun (1.16-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Ship the /usr/bin/crun-wasm symlink on amd64/arm64. (Closes: #1070727)
+  * Remove the last remaining workaround for cpuguy83/go-md2man#99, now fully
+    fixed upstream.
+  * Remove Built-Using for runtime/image specs, as this should only be used
+    for licensing/DFSG reasons (per policy 7.8).
+
+ -- Faidon Liambotis <paravoid@debian.org>  Tue, 13 Aug 2024 17:20:13 +0300
+
+crun (1.15-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Bump golang-github-opencontainers-specs-dev Build-Dependency to 1.2.0.
+  * Bump Standards-Version to 4.7.0, no further changes needed.
+
+ -- Faidon Liambotis <paravoid@debian.org>  Thu, 02 May 2024 16:35:46 +0300
+
+crun (1.14.4-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Reinhard Tartler <siretart@tauware.de>  Sat, 09 Mar 2024 09:39:23 -0500
+
+crun (1.14.1-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Harden codebase based on the learnings of runc's CVE-2024-21626.
+  * Drop alternative dependency pkg-config, obsolete since bookworm.
+
+ -- Faidon Liambotis <paravoid@debian.org>  Mon, 12 Feb 2024 14:29:52 +0200
+
+crun (1.14-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Faidon Liambotis <paravoid@debian.org>  Thu, 25 Jan 2024 10:36:38 +0200
+
+crun (1.13-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Faidon Liambotis <paravoid@debian.org>  Mon, 15 Jan 2024 20:20:00 +0200
+
+crun (1.12-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Faidon Liambotis <paravoid@debian.org>  Fri, 24 Nov 2023 11:11:19 +0200
+
+crun (1.11.1-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Faidon Liambotis <paravoid@debian.org>  Thu, 02 Nov 2023 15:07:49 +0200
+
+crun (1.11-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Drop patch ioprio-test-issue-1330, merged upstream.
+  * Regenerate manpages from their Markdown sources, resolving lintian
+    groff-message warnings in the process, resulting from go-md2man upstream
+    issue #99 ("C" font portability), now fixed.
+
+ -- Faidon Liambotis <paravoid@debian.org>  Fri, 27 Oct 2023 15:37:50 +0300
+
+crun (1.10-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Fix incompatibility with Linux >= 6.1.0. (Closes: #1053821)
+  * Fix a test failure with Linux >= 6.5 (test_prio/ioprio).
+
+ -- Faidon Liambotis <paravoid@debian.org>  Tue, 24 Oct 2023 18:17:09 +0300
+
+crun (1.9-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Faidon Liambotis <paravoid@debian.org>  Wed, 13 Sep 2023 02:25:18 +0300
+
+crun (1.8.7-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Drop patch mount_flags.perf-add-get_mount_flags_from_wordlist, as it was
+      a backport.
+
+ -- Faidon Liambotis <paravoid@debian.org>  Tue, 22 Aug 2023 03:24:25 +0300
+
+crun (1.8.6-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Drop test suite patches that were merged upstream.
+  * Add patch mount_flags.perf-add-get_mount_flags_from_wordlist, fix for the
+    reported upstream issue #1253, an FTBFS caused by the regeneration of
+    gperf-generated files from source.
+  * Unmark autopkgtest tests from being flaky.
+
+ -- Faidon Liambotis <paravoid@debian.org>  Thu, 17 Aug 2023 04:50:08 +0300
+
+crun (1.8.5-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Bump golang-github-opencontainers-specs-dev Build-Dependency to account
+    for required changes there (timeOffsets).
+  * Add an additional guard in override_dh_gencontrol to ensure that we are
+    building against libyajl. The embedded copy is not, and was never used in
+    this package, but add a guard to make sure we FTBFS if that ever becomes
+    the case. See bugs #1039083 and #1040147 for additional context.
+  * Add an autopkgtest running the upstream test suite, in an isolated-machine
+    test rig, under both rootless and rootful configurations.
+  * Enable wasm-wasi support on amd64 and arm64 through the WasmEdge runtime.
+    - Build-Depend on libwasmedge-dev, and Suggest libwasmedge0.
+    - Pass --with-wasmedge to ./configure.
   * Move myself to Maintainer, and Dmitry to Uploaders.
 
- -- Faidon Liambotis <paravoid@debian.org>  Thu, 02 Nov 2023 18:52:46 +0200
+ -- Faidon Liambotis <paravoid@debian.org>  Thu, 13 Jul 2023 17:54:38 +0300
 
 crun (1.8.1-1) unstable; urgency=medium
 
@@ -23,7 +197,7 @@ crun (1.8-1) unstable; urgency=medium
     the DFSG repack. The two binary files were removed in the latest upstream
     release (PR #1126), and libocispec is DFSG-free, even if unused.
   * Rework debian/copyright, to simplify, document previously undocumented
-    files (e.g.  libyajl).
+    files (e.g. libyajl).
   * Bump golang-github-opencontainers-specs-dev Build-Dependency to account
     for required changes there (memory.checkBeforeUpdate).
   * Regenerate a couple of pregenerated files using gperf.

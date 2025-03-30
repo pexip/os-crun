@@ -32,7 +32,11 @@ The state of a container includes the following properties:
 
 The state MAY include additional properties.
 
-When serialized in JSON, the format MUST adhere to the following pattern:
+When serialized in JSON, the format MUST adhere to the JSON Schema [`schema/state-schema.json`](schema/state-schema.json).
+
+See [Query State](#query-state) for information on retrieving the state of a container.
+
+### Example
 
 ```json
 {
@@ -46,8 +50,6 @@ When serialized in JSON, the format MUST adhere to the following pattern:
     }
 }
 ```
-
-See [Query State](#query-state) for information on retrieving the state of a container.
 
 ## <a name="runtimeLifecycle" />Lifecycle
 The lifecycle describes the timeline of events that happen from when a container is created to when it ceases to exist.
@@ -114,7 +116,7 @@ The remaining `process` properties MAY be applied by this operation.
 If the runtime cannot apply a property as specified in the [configuration](config.md), it MUST [generate an error](#errors) and a new container MUST NOT be created.
 
 The runtime MAY validate `config.json` against this spec, either generically or with respect to the local system capabilities, before creating the container ([step 2](#lifecycle)).
-Runtime callers who are interested in pre-create validation can run [bundle-validation tools](implementations.md#testing--tools) before invoking the create operation.
+[Runtime callers](glossary.md#runtime-caller) who are interested in pre-create validation can run [bundle-validation tools](implementations.md#testing--tools) before invoking the create operation.
 
 Any changes made to the [`config.json`](config.md) file after this operation will not have an effect on the container.
 

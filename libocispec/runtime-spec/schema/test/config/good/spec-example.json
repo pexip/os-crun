@@ -159,8 +159,14 @@
         "createRuntime": [
             {
                 "path": "/usr/bin/fix-mounts",
-                "args": ["fix-mounts", "arg1", "arg2"],
-                "env":  [ "key1=value1"]
+                "args": [
+                    "fix-mounts",
+                    "arg1",
+                    "arg2"
+                ],
+                "env": [
+                    "key1=value1"
+                ]
             },
             {
                 "path": "/usr/bin/setup-network"
@@ -169,8 +175,14 @@
         "createContainer": [
             {
                 "path": "/usr/bin/mount-hook",
-                "args": ["-mount", "arg1", "arg2"],
-                "env":  [ "key1=value1"]
+                "args": [
+                    "-mount",
+                    "arg1",
+                    "arg2"
+                ],
+                "env": [
+                    "key1=value1"
+                ]
             }
         ],
         "startContainer": [
@@ -276,6 +288,7 @@
             "cpu": {
                 "shares": 1024,
                 "quota": 1000000,
+                "burst": 1000000,
                 "period": 500000,
                 "realtimeRuntime": 950000,
                 "realtimePeriod": 1000000,
@@ -351,6 +364,16 @@
                 }
             ]
         },
+        "timeOffsets": {
+            "monotonic": {
+                "secs": 172800,
+                "nanosecs": 0
+            },
+            "boottime": {
+                "secs": 604800,
+                "nanosecs": 0
+            }
+        },
         "namespaces": [
             {
                 "type": "pid"
@@ -372,6 +395,9 @@
             },
             {
                 "type": "cgroup"
+            },
+            {
+                "type": "time"
             }
         ],
         "maskedPaths": [

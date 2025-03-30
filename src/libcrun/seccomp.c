@@ -19,6 +19,7 @@
 #define _GNU_SOURCE
 
 #include <config.h>
+#include "blake3/blake3.h"
 #include "seccomp.h"
 #include "linux.h"
 #include "utils.h"
@@ -37,14 +38,11 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
-#if HAVE_GCRYPT
-#  include <gcrypt.h>
-#endif
-
 #if HAVE_STDATOMIC_H
 #  include <stdatomic.h>
-#else
-#  define atomic_int volatile int
+#  ifndef HAVE_ATOMIC_INT
+#    define atomic_int volatile int
+#  endif
 #endif
 
 #ifdef HAVE_SECCOMP
@@ -236,7 +234,7 @@ libcrun_apply_seccomp (int infd, int listener_receiver_fd, const char *receiver_
           else if (strcmp (seccomp_flags[i], "SECCOMP_FILTER_FLAG_WAIT_KILLABLE_RECV") == 0)
             flags |= SECCOMP_FILTER_FLAG_WAIT_KILLABLE_RECV;
           else
-            return crun_make_error (err, 0, "unknown seccomp option %s", seccomp_flags[i]);
+            return crun_make_error (err, 0, "unknown seccomp option `%s`", seccomp_flags[i]);
         }
     }
 
@@ -255,12 +253,16 @@ libcrun_apply_seccomp (int infd, int listener_receiver_fd, const char *receiver_
 #  ifdef SECCOMP_FILTER_FLAG_NEW_LISTENER
       flags |= SECCOMP_FILTER_FLAG_NEW_LISTENER;
 #  else
-      return crun_make_error (err, 0, "the SECCOMP_FILTER_FLAG_NEW_LISTENER flag is not supported");
+      return crun_make_error (err, 0, "the `SECCOMP_FILTER_FLAG_NEW_LISTENER` flag is not supported");
 #  endif
 
-      memfd = memfd_create ("seccomp-helper-memfd", O_RDWR);
+#  ifdef HAVE_MEMFD_CREATE
+      memfd = memfd_create ("seccomp-helper-memfd", O_RDWR | MFD_CLOEXEC);
       if (UNLIKELY (memfd < 0))
         return crun_make_error (err, errno, "memfd_create");
+#  else
+      return crun_make_error (err, ENOSYS, "memfd_create non supported");
+#  endif
 
       ret = ftruncate (memfd, sizeof (atomic_int));
       if (UNLIKELY (ret < 0))
@@ -364,55 +366,34 @@ seccomp_action_supports_errno (const char *action)
 
    Returns:
    < 0 in case of errors
-     0 if the checksum is not supported
-   > 0 the checksum is supported and the value is in OUT.
+   == 0 the checksum is supported and the value is in OUT.
  */
 static int
 calculate_seccomp_checksum (runtime_spec_schema_config_linux_seccomp *seccomp, unsigned int seccomp_gen_options, seccomp_checksum_t out, libcrun_error_t *err)
 {
-#if HAVE_GCRYPT
-  static atomic_bool initialized = false;
-  gcry_error_t gcrypt_err;
+  blake3_hasher hasher;
+  unsigned char hash[32];
   struct utsname utsbuf;
-  unsigned char *res;
-  gcry_md_hd_t hd;
   size_t i;
   int ret;
 
-  if (! initialized && ! gcry_control (GCRYCTL_INITIALIZATION_FINISHED_P))
-    {
-      const char *needed_version = "1.0.0";
-      if (! gcry_check_version (needed_version))
-        {
-          return libcrun_make_error (err, 0, "libgcrypt is too old (need %s, have %s)",
-                                     needed_version, gcry_check_version (NULL));
-        }
-      gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
-      gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
-      initialized = true;
-    }
+  blake3_hasher_init (&hasher);
 
-#  define PROCESS_STRING(X)                      \
-    do                                           \
-      {                                          \
-        if (X)                                   \
-          {                                      \
-            gcry_md_write (hd, (X), strlen (X)); \
-          }                                      \
-    } while (0)
-#  define PROCESS_DATA(X)                     \
-    do                                        \
-      {                                       \
-        gcry_md_write (hd, &(X), sizeof (X)); \
-    } while (0)
-
-  gcrypt_err = gcry_md_open (&hd, GCRY_MD_SHA256, 0);
-  if (gcrypt_err)
-    return crun_make_error (err, EINVAL, "internal libgcrypt error: %s", gcry_strerror (gcrypt_err));
+#define PROCESS_STRING(X)                                  \
+  do                                                       \
+    {                                                      \
+      if (X)                                               \
+        blake3_hasher_update (&hasher, (X), strlen ((X))); \
+  } while (0)
+#define PROCESS_DATA(X)                                   \
+  do                                                      \
+    {                                                     \
+      blake3_hasher_update (&hasher, &(X), sizeof ((X))); \
+  } while (0)
 
   PROCESS_STRING (PACKAGE_VERSION);
 
-#  ifdef HAVE_SECCOMP
+#ifdef HAVE_SECCOMP
   {
     const struct scmp_version *version = seccomp_version ();
 
@@ -420,7 +401,7 @@ calculate_seccomp_checksum (runtime_spec_schema_config_linux_seccomp *seccomp, u
     PROCESS_DATA (version->minor);
     PROCESS_DATA (version->micro);
   }
-#  endif
+#endif
 
   memset (&utsbuf, 0, sizeof (utsbuf));
   ret = uname (&utsbuf);
@@ -433,6 +414,7 @@ calculate_seccomp_checksum (runtime_spec_schema_config_linux_seccomp *seccomp, u
 
   PROCESS_DATA (seccomp_gen_options);
 
+  PROCESS_DATA (seccomp->default_errno_ret);
   PROCESS_STRING (seccomp->default_action);
   for (i = 0; i < seccomp->flags_len; i++)
     PROCESS_STRING (seccomp->flags[i]);
@@ -458,24 +440,15 @@ calculate_seccomp_checksum (runtime_spec_schema_config_linux_seccomp *seccomp, u
         }
     }
 
-  res = gcry_md_read (hd, GCRY_MD_SHA256);
+  blake3_hasher_finalize (&hasher, hash, sizeof (hash));
+
   for (i = 0; i < 32; i++)
-    sprintf (&out[i * 2], "%02x", res[i]);
+    sprintf (&out[i * 2], "%02x", hash[i]);
   out[64] = 0;
 
-  gcry_md_close (hd);
-
-#  undef PROCESS_STRING
-#  undef PROCESS_DATA
+#undef PROCESS_STRING
+#undef PROCESS_DATA
   return 1;
-#else
-  (void) seccomp;
-  (void) seccomp_gen_options;
-  (void) out;
-  (void) err;
-  out[0] = 0;
-  return 0;
-#endif
 }
 
 static int
@@ -483,10 +456,11 @@ open_rundir_dirfd (const char *state_root, libcrun_error_t *err)
 {
   cleanup_free char *dir = NULL;
   int dirfd;
+  int ret;
 
-  dir = libcrun_get_state_directory (state_root, NULL);
-  if (UNLIKELY (dir == NULL))
-    return crun_make_error (err, 0, "cannot get state directory");
+  ret = libcrun_get_state_directory (&dir, state_root, NULL, err);
+  if (UNLIKELY (ret < 0))
+    return ret;
 
   dirfd = TEMP_FAILURE_RETRY (open (dir, O_PATH | O_DIRECTORY | O_CLOEXEC));
   if (UNLIKELY (dirfd < 0))
@@ -663,7 +637,7 @@ find_in_cache (struct libcrun_seccomp_gen_ctx_s *ctx, int dirfd, const char *des
 
   /* if the checksum could not be computed, returns early.  */
   ret = calculate_seccomp_checksum (seccomp, ctx->options, ctx->checksum, err);
-  if (UNLIKELY (ret <= 0))
+  if (UNLIKELY (ret < 0))
     return ret;
 
   ret = append_paths (&cache_file_path, err, SECCOMP_CACHE_DIR, ctx->checksum, NULL);
@@ -741,7 +715,7 @@ libcrun_generate_seccomp (struct libcrun_seccomp_gen_ctx_s *gen_ctx, libcrun_err
 #  ifdef SECCOMP_ARCH_RESOLVE_NAME
       arch_token = seccomp_arch_resolve_name (lowercase_arch);
       if (arch_token == 0)
-        return crun_make_error (err, 0, "seccomp unknown architecture %s", arch);
+        return crun_make_error (err, 0, "seccomp unknown architecture `%s`", arch);
 #  else
       arch_token = SCMP_ARCH_NATIVE;
 #  endif
@@ -801,7 +775,7 @@ libcrun_generate_seccomp (struct libcrun_seccomp_gen_ctx_s *gen_ctx, libcrun_err
 
                   index = seccomp->syscalls[i]->args[k]->index;
                   if (index >= 6)
-                    return crun_make_error (err, 0, "invalid seccomp index %zu", i);
+                    return crun_make_error (err, 0, "invalid seccomp index `%zu`", i);
 
                   count[index]++;
                   if (count[index] > 1)
@@ -875,9 +849,9 @@ libcrun_copy_seccomp (struct libcrun_seccomp_gen_ctx_s *gen_ctx, const char *b64
   if (UNLIKELY (consumed != (int) in_size))
     return crun_make_error (err, 0, "invalid seccomp BPF data");
 
-  ret = safe_write (gen_ctx->fd, bpf_data, (ssize_t) size);
+  ret = safe_write (gen_ctx->fd, "seccomp fd", bpf_data, size, err);
   if (UNLIKELY (ret < 0))
-    return crun_make_error (err, 0, "write to seccomp fd");
+    return ret;
 
   return 0;
 }
@@ -918,7 +892,7 @@ libcrun_open_seccomp_bpf (struct libcrun_seccomp_gen_ctx_s *ctx, int *fd, libcru
           goto open_existing_file;
         }
 
-      ret = TEMP_FAILURE_RETRY (openat (dirfd, dest_path, O_RDWR | O_CREAT, 0700));
+      ret = TEMP_FAILURE_RETRY (openat (dirfd, dest_path, O_CLOEXEC | O_RDWR | O_CREAT, 0700));
       if (UNLIKELY (ret < 0))
         return crun_make_error (err, errno, "open `seccomp.bpf`");
       ctx->fd = *fd = ret;
@@ -926,7 +900,7 @@ libcrun_open_seccomp_bpf (struct libcrun_seccomp_gen_ctx_s *ctx, int *fd, libcru
   else
     {
     open_existing_file:
-      ret = TEMP_FAILURE_RETRY (openat (dirfd, dest_path, O_RDONLY));
+      ret = TEMP_FAILURE_RETRY (openat (dirfd, dest_path, O_CLOEXEC | O_RDONLY));
       if (UNLIKELY (ret < 0))
         {
           if (errno == ENOENT)

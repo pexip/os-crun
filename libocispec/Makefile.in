@@ -189,6 +189,8 @@ am__objects_3 = src/ocispec/image_spec_schema_config_schema.lo \
 	src/ocispec/runtime_spec_schema_defs_vm.lo \
 	src/ocispec/runtime_spec_schema_defs_windows.lo \
 	src/ocispec/runtime_spec_schema_state_schema.lo \
+	src/ocispec/runtime_spec_schema_features_linux.lo \
+	src/ocispec/runtime_spec_schema_features_schema.lo \
 	src/ocispec/image_manifest_items_image_manifest_items_schema.lo \
 	src/ocispec/basic_test_double_array_item.lo \
 	src/ocispec/basic_test_double_array.lo \
@@ -294,6 +296,8 @@ am__depfiles_remade =  \
 	src/ocispec/$(DEPDIR)/runtime_spec_schema_defs_vm.Plo \
 	src/ocispec/$(DEPDIR)/runtime_spec_schema_defs_windows.Plo \
 	src/ocispec/$(DEPDIR)/runtime_spec_schema_defs_zos.Plo \
+	src/ocispec/$(DEPDIR)/runtime_spec_schema_features_linux.Plo \
+	src/ocispec/$(DEPDIR)/runtime_spec_schema_features_schema.Plo \
 	src/ocispec/$(DEPDIR)/runtime_spec_schema_state_schema.Plo \
 	src/ocispec/$(DEPDIR)/validate.Po tests/$(DEPDIR)/test-1.Po \
 	tests/$(DEPDIR)/test-10.Po tests/$(DEPDIR)/test-11.Po \
@@ -368,6 +372,8 @@ am__ocispec_include_HEADERS_DIST =  \
 	src/ocispec/runtime_spec_schema_defs_vm.h \
 	src/ocispec/runtime_spec_schema_defs_windows.h \
 	src/ocispec/runtime_spec_schema_state_schema.h \
+	src/ocispec/runtime_spec_schema_features_linux.h \
+	src/ocispec/runtime_spec_schema_features_schema.h \
 	src/ocispec/image_manifest_items_image_manifest_items_schema.h \
 	src/ocispec/basic_test_double_array_item.h \
 	src/ocispec/basic_test_double_array.h \
@@ -809,6 +815,8 @@ SOURCE_FILES = \
 	src/ocispec/runtime_spec_schema_defs_vm.c \
 	src/ocispec/runtime_spec_schema_defs_windows.c \
 	src/ocispec/runtime_spec_schema_state_schema.c \
+	src/ocispec/runtime_spec_schema_features_linux.c \
+	src/ocispec/runtime_spec_schema_features_schema.c \
 	src/ocispec/image_manifest_items_image_manifest_items_schema.c \
 	src/ocispec/basic_test_double_array_item.c \
 	src/ocispec/basic_test_double_array.c \
@@ -889,7 +897,8 @@ EXTRA_DIST = autogen.sh \
 	runtime-spec \
 	image-spec \
 	src/ocispec/json_common.h \
-	src/ocispec/json_common.c
+	src/ocispec/json_common.c \
+	src/yajl
 
 all: $(BUILT_SOURCES) config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
@@ -1096,6 +1105,12 @@ src/ocispec/runtime_spec_schema_defs_windows.lo:  \
 src/ocispec/runtime_spec_schema_state_schema.lo:  \
 	src/ocispec/$(am__dirstamp) \
 	src/ocispec/$(DEPDIR)/$(am__dirstamp)
+src/ocispec/runtime_spec_schema_features_linux.lo:  \
+	src/ocispec/$(am__dirstamp) \
+	src/ocispec/$(DEPDIR)/$(am__dirstamp)
+src/ocispec/runtime_spec_schema_features_schema.lo:  \
+	src/ocispec/$(am__dirstamp) \
+	src/ocispec/$(DEPDIR)/$(am__dirstamp)
 src/ocispec/image_manifest_items_image_manifest_items_schema.lo:  \
 	src/ocispec/$(am__dirstamp) \
 	src/ocispec/$(DEPDIR)/$(am__dirstamp)
@@ -1245,6 +1260,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/ocispec/$(DEPDIR)/runtime_spec_schema_defs_vm.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/ocispec/$(DEPDIR)/runtime_spec_schema_defs_windows.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/ocispec/$(DEPDIR)/runtime_spec_schema_defs_zos.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@src/ocispec/$(DEPDIR)/runtime_spec_schema_features_linux.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@src/ocispec/$(DEPDIR)/runtime_spec_schema_features_schema.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/ocispec/$(DEPDIR)/runtime_spec_schema_state_schema.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/ocispec/$(DEPDIR)/validate.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@tests/$(DEPDIR)/test-1.Po@am__quote@ # am--include-marker
@@ -1966,6 +1983,8 @@ distclean: distclean-recursive
 	-rm -f src/ocispec/$(DEPDIR)/runtime_spec_schema_defs_vm.Plo
 	-rm -f src/ocispec/$(DEPDIR)/runtime_spec_schema_defs_windows.Plo
 	-rm -f src/ocispec/$(DEPDIR)/runtime_spec_schema_defs_zos.Plo
+	-rm -f src/ocispec/$(DEPDIR)/runtime_spec_schema_features_linux.Plo
+	-rm -f src/ocispec/$(DEPDIR)/runtime_spec_schema_features_schema.Plo
 	-rm -f src/ocispec/$(DEPDIR)/runtime_spec_schema_state_schema.Plo
 	-rm -f src/ocispec/$(DEPDIR)/validate.Po
 	-rm -f tests/$(DEPDIR)/test-1.Po
@@ -2055,6 +2074,8 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f src/ocispec/$(DEPDIR)/runtime_spec_schema_defs_vm.Plo
 	-rm -f src/ocispec/$(DEPDIR)/runtime_spec_schema_defs_windows.Plo
 	-rm -f src/ocispec/$(DEPDIR)/runtime_spec_schema_defs_zos.Plo
+	-rm -f src/ocispec/$(DEPDIR)/runtime_spec_schema_features_linux.Plo
+	-rm -f src/ocispec/$(DEPDIR)/runtime_spec_schema_features_schema.Plo
 	-rm -f src/ocispec/$(DEPDIR)/runtime_spec_schema_state_schema.Plo
 	-rm -f src/ocispec/$(DEPDIR)/validate.Po
 	-rm -f tests/$(DEPDIR)/test-1.Po
@@ -2161,6 +2182,10 @@ src/ocispec/runtime_spec_schema_config_linux.h \
 	src/ocispec/runtime_spec_schema_defs.h \
 	src/ocispec/runtime_spec_schema_defs_linux.h \
 	src/ocispec/runtime_spec_schema_defs_zos.h \
+	src/ocispec/runtime_spec_schema_features_linux.h \
+	src/ocispec/runtime_spec_schema_features_schema.h \
+	src/ocispec/runtime_spec_schema_features_linux.c \
+	src/ocispec/runtime_spec_schema_features_schema.c \
 	src/ocispec/runtime_spec_schema_defs_vm.h \
 	src/ocispec/runtime_spec_schema_defs_windows.h \
 	src/ocispec/runtime_spec_schema_state_schema.h \

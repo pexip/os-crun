@@ -215,6 +215,58 @@ func TestManifest(t *testing.T) {
 `,
 		},
 
+		// expected success: subject field with a valid descriptor
+		{
+			manifest: `
+{
+  "schemaVersion": 2,
+  "mediaType" : "application/vnd.oci.image.manifest.v1+json",
+  "config": {
+    "mediaType": "application/vnd.oci.image.config.v1+json",
+    "size": 1470,
+    "digest": "sha256:c86f7763873b6c0aae22d963bab59b4f5debbed6685761b5951584f6efb0633b"
+  },
+  "layers": [
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "size": 1470,
+      "digest": "sha256:c86f7763873b6c0aae22d963bab59b4f5debbed6685761b5951584f6efb0633b"
+    }
+  ],
+  "subject" : {
+    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+    "size": 1234,
+    "digest": "sha256:220a60ecd4a3c32c282622a625a54db9ba0ff55b5ba9c29c7064a2bc358b6a3e"
+  }
+}
+`,
+			fail: false,
+		},
+
+		// expected failure: subject field with invalid value (something that is not a descriptor)
+		{
+			manifest: `
+{
+  "schemaVersion": 2,
+  "mediaType" : "application/vnd.oci.image.manifest.v1+json",
+  "config": {
+    "mediaType": "application/vnd.oci.image.config.v1+json",
+    "size": 1470,
+    "digest": "sha256:c86f7763873b6c0aae22d963bab59b4f5debbed6685761b5951584f6efb0633b"
+  },
+  "layers": [
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "size": 1470,
+      "digest": "sha256:c86f7763873b6c0aae22d963bab59b4f5debbed6685761b5951584f6efb0633b"
+    }
+  ],
+  "subject" : ".nope"
+}
+`,
+			fail: true,
+		},
+
 		// expected failure: push bounds of algorithm field in digest too far.
 		{
 			manifest: `
@@ -236,6 +288,53 @@ func TestManifest(t *testing.T) {
 }
 `,
 			fail: true,
+		},
+
+		// valid manifest for an artifact with a dedicated config
+		{
+			manifest: `
+{
+  "schemaVersion": 2,
+  "mediaType" : "application/vnd.oci.image.manifest.v1+json",
+  "config": {
+    "mediaType": "application/vnd.example.config+json",
+    "size": 1470,
+    "digest": "sha256:c86f7763873b6c0aae22d963bab59b4f5debbed6685761b5951584f6efb0633b"
+  },
+  "layers": [
+    {
+      "mediaType": "application/vnd.example.data+type",
+      "size": 675598,
+      "digest": "sha256:9d3dd9504c685a304985025df4ed0283e47ac9ffa9bd0326fddf4d59513f0827"
+    }
+  ]
+}
+`,
+			fail: false,
+		},
+
+		// valid manifest for an artifact using the empty config and artifactType
+		{
+			manifest: `
+{
+  "schemaVersion": 2,
+  "mediaType" : "application/vnd.oci.image.manifest.v1+json",
+  "artifactType": "application/vnd.example+type",
+  "config": {
+    "mediaType": "application/vnd.oci.empty.v1+json",
+    "size": 2,
+    "digest": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  "layers": [
+    {
+      "mediaType": "application/vnd.example+type",
+      "size": 675598,
+      "digest": "sha256:9d3dd9504c685a304985025df4ed0283e47ac9ffa9bd0326fddf4d59513f0827"
+    }
+  ]
+}
+`,
+			fail: false,
 		},
 	} {
 		r := strings.NewReader(tt.manifest)

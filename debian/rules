@@ -1,6 +1,16 @@
 #!/usr/bin/make -f
 
+include /usr/share/dpkg/architecture.mk
+
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+ifneq (,$(findstring $(DEB_HOST_ARCH),amd64 arm64))
+  ENABLE_WASMEDGE := 1
+endif
+
+ifeq ($(ENABLE_WASMEDGE),1)
+  DEB_CONFIGOPTS += --with-wasmedge
+endif
 
 %:
 	dh $@
@@ -8,6 +18,11 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 override_dh_auto_clean:
 	-dh_auto_clean
 
+# Use the Debian-provided libocispec image and runtime specs, from the
+# golang-github-opencontainers-{image-spec,specs}-dev packages.
+#
+# Copy them here for autoconf to run, and restore the embedded copy in clean to
+# avoid a dirty diff.
 execute_after_dh_clean:
 	for spec in image-spec runtime-spec; do \
 		if [ -d libocispec/$$spec.saved ]; then \
@@ -16,7 +31,8 @@ execute_after_dh_clean:
 		fi; \
 	done
 
-execute_after_dh_auto_configure:
+override_dh_auto_configure:
+	dh_auto_configure -- $(DEB_CONFIGOPTS)
 	for spec in image-spec runtime-spec; do \
 		if [ ! -d libocispec/$$spec.saved ]; then \
 			mv libocispec/$$spec libocispec/$$spec.saved ; \
@@ -24,16 +40,33 @@ execute_after_dh_auto_configure:
 		fi; \
 	done
 
+# The test suite tries to perform all kinds of privileged operations, like
+# spawn containers, that are not necessarily allowed in the build environment,
+# as is the case in the Debian buildd network.
+#
+# Thus run the suite, but ignore all errors; proper testing can happen in the
+# autopkgtest testing environment
 override_dh_auto_test:
 	-dh_auto_test
 
 execute_before_dh_auto_build:
+	# These are generated with gperf, but regenerated for DFSG reasons here
 	make generate-signals.c
 	make generate-mount_flags.c
+	# upstream ships prebuilt manpages, regenerate them
+	rm -f *.1
+	make generate-man
+	# we don't ship this, but autopkgtest needs it through build-needed
+	make tests/init
 
 override_dh_auto_install:
 	dh_auto_install --destdir=debian/tmp
+ifeq ($(ENABLE_WASMEDGE),1)
+	dh_link usr/bin/crun usr/bin/crun-wasm
+	dh_link usr/share/man/man1/crun.1 usr/share/man/man1/crun-wasm.1
+endif
 	-$(RM) debian/tmp/usr/lib/*/*.la
 
-override_dh_gencontrol:
-	dh_gencontrol -- -Vmy:Built-Using="$(shell dpkg-query --show -f '$${source:Package} (=$${source:Version}),' golang-github-opencontainers-image-spec-dev golang-github-opencontainers-specs-dev)"
+execute_after_dh_gencontrol:
+	# ensure we are linking against libyajl, and not building the embedded copy
+	grep -q yajl debian/crun.substvars
