@@ -34,6 +34,7 @@ The following parameters can be specified to set up namespaces:
     * **`uts`** the container will be able to have its own hostname and domain name.
     * **`user`** the container will be able to remap user and group IDs from the host to local users and groups within the container.
     * **`cgroup`** the container will have an isolated view of the cgroup hierarchy.
+    * **`time`** the container will be able to have its own clocks.
 * **`path`** *(string, OPTIONAL)* - namespace file.
     This value MUST be an absolute path in the [runtime mount namespace](glossary.md#runtime-namespace).
     The runtime MUST place the container process in the namespace associated with that `path`.
@@ -70,6 +71,9 @@ If a `namespaces` field contains duplicated namespaces with same `type`, the run
     },
     {
         "type": "cgroup"
+    },
+    {
+        "type": "time"
     }
 ]
 ```
@@ -107,6 +111,17 @@ Note that the number of mapping entries MAY be limited by the [kernel][user-name
 ]
 ```
 
+## <a name="configLinuxTimeOffset" />Offset for Time Namespace
+
+**`timeOffsets`** (object, OPTIONAL) sets the offset for Time Namespace. For more information
+see the [time_namespaces][time_namespaces.7].
+
+The name of the clock is the entry key.
+Entry values are objects with the following properties:
+
+* **`secs`** *(int64, OPTIONAL)* - is the offset of clock (in seconds) in the container.
+* **`nanosecs`** *(uint32, OPTIONAL)* - is the offset of clock (in nanoseconds) in the container.
+
 ## <a name="configLinuxDevices" />Devices
 
 **`devices`** (array of objects, OPTIONAL) lists devices that MUST be available in the container.
@@ -118,6 +133,7 @@ Each entry has the following structure:
     More info in [mknod(1)][mknod.1].
 * **`path`** *(string, REQUIRED)* - full path to device inside container.
     If a [file][] already exists at `path` that does not match the requested device, the runtime MUST generate an error.
+    The path MAY be anywhere in the container filesystem, notably outside of `/dev`.
 * **`major, minor`** *(int64, REQUIRED unless `type` is `p`)* - [major, minor numbers][devices] for the device.
 * **`fileMode`** *(uint32, OPTIONAL)* - file mode for the device.
     You can also control access to devices [with cgroups](#configLinuxDeviceAllowedlist).
@@ -125,6 +141,14 @@ Each entry has the following structure:
 * **`gid`** *(uint32, OPTIONAL)* - id of device group in the [container namespace](glossary.md#container-namespace).
 
 The same `type`, `major` and `minor` SHOULD NOT be used for multiple devices.
+
+Containers MAY NOT access any device node that is not either explicitly
+referenced in the **`devices`** array or listed as being part of the
+[default devices](#configLinuxDefaultDevices).
+Rationale: runtimes based on virtual machines need to be able to adjust the node
+devices, and accessing device nodes that were not adjusted could have undefined
+behaviour.
+
 
 ### Example
 
@@ -365,11 +389,14 @@ The following parameters can be specified to set up the controller:
 
 * **`shares`** *(uint64, OPTIONAL)* - specifies a relative share of CPU time available to the tasks in a cgroup
 * **`quota`** *(int64, OPTIONAL)* - specifies the total amount of time in microseconds for which all tasks in a cgroup can run during one period (as defined by **`period`** below)
+    If specified with any (valid) positive value, it MUST be no smaller than `burst` (runtimes MAY generate an error).
+* **`burst`** *(uint64, OPTIONAL)* - specifies the maximum amount of accumulated time in microseconds for which all tasks in a cgroup can run additionally for burst during one period (as defined by **`period`** below)
+    If specified, this value MUST be no larger than any positive `quota` (runtimes MAY generate an error).
 * **`period`** *(uint64, OPTIONAL)* - specifies a period of time in microseconds for how regularly a cgroup's access to CPU resources should be reallocated (CFS scheduler only)
 * **`realtimeRuntime`** *(int64, OPTIONAL)* - specifies a period of time in microseconds for the longest continuous period in which the tasks in a cgroup have access to CPU resources
 * **`realtimePeriod`** *(uint64, OPTIONAL)* - same as **`period`** but applies to realtime scheduler only
-* **`cpus`** *(string, OPTIONAL)* - list of CPUs the container will run in
-* **`mems`** *(string, OPTIONAL)* - list of Memory Nodes the container will run in
+* **`cpus`** *(string, OPTIONAL)* - list of CPUs the container will run on. This is a comma-separated list, with dashes to represent ranges. For example, `0-3,7` represents CPUs 0,1,2,3, and 7.
+* **`mems`** *(string, OPTIONAL)* - list of memory nodes the container will run on. This is a comma-separated list, with dashes to represent ranges. For example, `0-3,7` represents memory nodes 0,1,2,3, and 7.
 * **`idle`** *(int64, OPTIONAL)* - cgroups are configured with minimum weight, 0: default behavior, 1: SCHED_IDLE.
 
 #### Example
@@ -378,6 +405,7 @@ The following parameters can be specified to set up the controller:
 "cpu": {
     "shares": 1024,
     "quota": 1000000,
+    "burst": 1000000,
     "period": 500000,
     "realtimeRuntime": 950000,
     "realtimePeriod": 1000000,
@@ -390,7 +418,9 @@ The following parameters can be specified to set up the controller:
 ### <a name="configLinuxBlockIO" />Block IO
 
 **`blockIO`** (object, OPTIONAL) represents the cgroup subsystem `blkio` which implements the block IO controller.
-For more information, see the kernel cgroups documentation about [blkio][cgroup-v1-blkio].
+For more information, see the kernel cgroups documentation about [blkio][cgroup-v1-blkio] of cgroup v1 or [io][cgroup-v2-io] of cgroup v2, .
+
+Note that I/O throttling settings in cgroup v1 apply only to Direct I/O due to kernel implementation constraints, while this limitation does not exist in cgroup v2.
 
 The following parameters can be specified to set up the controller:
 
@@ -455,17 +485,31 @@ The following parameters can be specified to set up the controller:
 
 ### <a name="configLinuxHugePageLimits" />Huge page limits
 
-**`hugepageLimits`** (array of objects, OPTIONAL) represents the `hugetlb` controller which allows to limit the
-HugeTLB usage per control group and enforces the controller limit during page fault.
+**`hugepageLimits`** (array of objects, OPTIONAL) represents the `hugetlb` controller which allows to limit the HugeTLB reservations (if supported) or usage (page fault).
+By default if supported by the kernel, `hugepageLimits` defines the hugepage sizes and limits for HugeTLB controller
+reservation accounting, which allows to limit the HugeTLB reservations per control group and enforces the controller
+limit at reservation time and at the fault of HugeTLB memory for which no reservation exists.
+Otherwise if not supported by the kernel, this should fallback to the page fault accounting, which allows users to limit
+the HugeTLB usage (page fault) per control group and enforces the limit during page fault.
+
+Note that reservation limits are superior to page fault limits, since reservation limits are enforced at reservation
+time (on mmap or shget), and never causes the application to get SIGBUS signal if the memory was reserved before hand.
+This allows for easier fallback to alternatives such as non-HugeTLB memory for example. In the case of page fault
+accounting, it's very hard to avoid processes getting SIGBUS since the sysadmin needs precisely know the HugeTLB usage
+of all the tasks in the system and make sure there is enough pages to satisfy all requests. Avoiding tasks getting
+SIGBUS on overcommited systems is practically impossible with page fault accounting.
+
 For more information, see the kernel cgroups documentation about [HugeTLB][cgroup-v1-hugetlb].
 
 Each entry has the following structure:
 
-* **`pageSize`** *(string, REQUIRED)* - hugepage size
+* **`pageSize`** *(string, REQUIRED)* - hugepage size.
     The value has the format `<size><unit-prefix>B` (64KB, 2MB, 1GB), and must match the `<hugepagesize>` of the
-    corresponding control file found in `/sys/fs/cgroup/hugetlb/hugetlb.<hugepagesize>.limit_in_bytes`.
+    corresponding control file found in `/sys/fs/cgroup/hugetlb/hugetlb.<hugepagesize>.rsvd.limit_in_bytes` (if
+    hugetlb_cgroup reservation is supported) or `/sys/fs/cgroup/hugetlb/hugetlb.<hugepagesize>.limit_in_bytes` (if not
+    supported).
     Values of `<unit-prefix>` are intended to be parsed using base 1024 ("1KB" = 1024, "1MB" = 1048576, etc).
-* **`limit`** *(uint64, REQUIRED)* - limit in bytes of *hugepagesize* HugeTLB usage
+* **`limit`** *(uint64, REQUIRED)* - limit in bytes of *hugepagesize* HugeTLB reservations (if supported) or usage.
 
 #### Example
 
@@ -806,14 +850,14 @@ Example sending a single `seccompFd` file descriptor in the `SCM_RIGHTS` array:
 
 ```json
 {
-    "ociVersion": "0.2.0",
+    "ociVersion": "1.0.2",
     "fds": [
         "seccompFd"
     ],
     "pid": 4422,
     "metadata": "MKNOD=/dev/null,/dev/net/tun;BPF_MAP_TYPES=hash,array",
     "state": {
-        "ociVersion": "0.2.0",
+        "ociVersion": "1.0.2",
         "id": "oci-container1",
         "status": "creating",
         "pid": 4422,
@@ -912,9 +956,10 @@ subset of the available options.
 [cgroup-v1-pids]: https://www.kernel.org/doc/Documentation/cgroup-v1/pids.txt
 [cgroup-v1-rdma]: https://www.kernel.org/doc/Documentation/cgroup-v1/rdma.txt
 [cgroup-v2]: https://www.kernel.org/doc/Documentation/cgroup-v2.txt
+[cgroup-v2-io]: https://docs.kernel.org/admin-guide/cgroup-v2.html#io
 [devices]: https://www.kernel.org/doc/Documentation/admin-guide/devices.txt
 [devpts]: https://www.kernel.org/doc/Documentation/filesystems/devpts.txt
-[file]: http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_164
+[file]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_164
 [libseccomp]: https://github.com/seccomp/libseccomp
 [proc]: https://www.kernel.org/doc/Documentation/filesystems/proc.txt
 [seccomp]: https://www.kernel.org/doc/Documentation/prctl/seccomp_filter.txt
@@ -922,16 +967,17 @@ subset of the available options.
 [sysfs]: https://www.kernel.org/doc/Documentation/filesystems/sysfs.txt
 [tmpfs]: https://www.kernel.org/doc/Documentation/filesystems/tmpfs.txt
 
-[full.4]: http://man7.org/linux/man-pages/man4/full.4.html
-[mknod.1]: http://man7.org/linux/man-pages/man1/mknod.1.html
-[mknod.2]: http://man7.org/linux/man-pages/man2/mknod.2.html
-[namespaces.7_2]: http://man7.org/linux/man-pages/man7/namespaces.7.html
-[null.4]: http://man7.org/linux/man-pages/man4/null.4.html
-[personality.2]: http://man7.org/linux/man-pages/man2/personality.2.html
-[pts.4]: http://man7.org/linux/man-pages/man4/pts.4.html
-[random.4]: http://man7.org/linux/man-pages/man4/random.4.html
-[sysctl.8]: http://man7.org/linux/man-pages/man8/sysctl.8.html
-[tty.4]: http://man7.org/linux/man-pages/man4/tty.4.html
-[zero.4]: http://man7.org/linux/man-pages/man4/zero.4.html
-[user-namespaces]: http://man7.org/linux/man-pages/man7/user_namespaces.7.html
+[full.4]: https://man7.org/linux/man-pages/man4/full.4.html
+[mknod.1]: https://man7.org/linux/man-pages/man1/mknod.1.html
+[mknod.2]: https://man7.org/linux/man-pages/man2/mknod.2.html
+[namespaces.7_2]: https://man7.org/linux/man-pages/man7/namespaces.7.html
+[null.4]: https://man7.org/linux/man-pages/man4/null.4.html
+[personality.2]: https://man7.org/linux/man-pages/man2/personality.2.html
+[pts.4]: https://man7.org/linux/man-pages/man4/pts.4.html
+[random.4]: https://man7.org/linux/man-pages/man4/random.4.html
+[sysctl.8]: https://man7.org/linux/man-pages/man8/sysctl.8.html
+[tty.4]: https://man7.org/linux/man-pages/man4/tty.4.html
+[zero.4]: https://man7.org/linux/man-pages/man4/zero.4.html
+[user-namespaces]: https://man7.org/linux/man-pages/man7/user_namespaces.7.html
 [intel-rdt-cat-kernel-interface]: https://www.kernel.org/doc/Documentation/x86/intel_rdt_ui.txt
+[time_namespaces.7]: https://man7.org/linux/man-pages/man7/time_namespaces.7.html

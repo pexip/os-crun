@@ -45,12 +45,9 @@ limits on the memory allowed in the container:
 # podman --runtime /usr/bin/runc run --rm --memory 4M fedora echo it works
 Error: container_linux.go:346: starting container process caused "process_linux.go:327: getting pipe fds for pid 13859 caused \"readlink /proc/13859/fd/0: no such file or directory\"": OCI runtime command not found error
 
-# podman --runtime /usr/bin/crun run --rm --memory 4M fedora echo it works
+# podman --runtime /usr/bin/crun run --rm --memory 512k fedora echo it works
 it works
 ```
-
-crun could go much lower than that, and require \< 1M. The used 4MB is a
-hard limit set directly in Podman before calling the OCI runtime.
 
 ## Dependencies
 
@@ -59,37 +56,40 @@ These dependencies are required for the build:
 ### Fedora
 
 ```console
-$ sudo dnf install -y make python git gcc automake autoconf libcap-devel \
-    systemd-devel yajl-devel libseccomp-devel pkg-config libgcrypt-devel \
-    go-md2man glibc-static python3-libmount libtool
+$ sudo dnf install -y \
+    autoconf automake gcc git-core glibc-static go-md2man \
+    libcap-devel libseccomp-devel libtool make pkg-config \
+    python python-libmount systemd-devel yajl-devel
 ```
 
-### RHEL/CentOS 8
+### RHEL/CentOS Stream 9
 
 ```console
-$ sudo yum --enablerepo='*' --disablerepo='media-*' install -y make automake \
-    autoconf gettext \
-    libtool gcc libcap-devel systemd-devel yajl-devel libgcrypt-devel \
-    glibc-static libseccomp-devel python36 git
+$ sudo dnf config-manager --set-enabled crb
+$ sudo dnf install -y \
+    autoconf automake gcc git-core glibc-static go-md2man \
+    libcap-devel libseccomp-devel libtool make pkg-config \
+    python python-libmount systemd-devel yajl-devel
 ```
 
-go-md2man is not available on RHEL/CentOS 8, so if you'd like to build
-the man page, you also need to manually install go-md2man. It can be
-installed with:
+### RHEL/CentOS Stream 10
 
 ```console
-$ sudo yum --enablerepo='*' install -y golang
-$ export GOPATH=$HOME/go
-$ go get github.com/cpuguy83/go-md2man
-$ export PATH=$PATH:$GOPATH/bin
+$ sudo dnf config-manager --set-enabled crb
+$ sudo dnf install -y \
+    autoconf automake gcc git-core glibc-static go-md2man \
+    libcap-devel libseccomp-devel libtool make pkg-config \
+    python python-libmount systemd-devel
 ```
+
+NOTE that you need to add `--enable-embedded-yajl` to `./configure` flags below.
 
 ### Ubuntu
 
 ```console
 $ sudo apt-get install -y make git gcc build-essential pkgconf libtool \
    libsystemd-dev libprotobuf-c-dev libcap-dev libseccomp-dev libyajl-dev \
-   libgcrypt20-dev go-md2man autoconf python3 automake
+   go-md2man autoconf python3 automake
 ```
 
 ### Alpine
@@ -144,7 +144,7 @@ The previous build instructions do not enable shared libraries, therefore you wi
 
 It is possible to build a statically linked binary of crun by using the
 officially provided
-[nix](https://nixos.org/nixos/packages.html?attr=crun&channel=nixpkgs-unstable&query=crun)
+[nix](https://nixos.org/nixos/packages.html?attr=crun&channel=unstable&query=crun)
 package and the derivation of it [within this repository](nix/). The
 builds are completely reproducible and will create a x86\_64/amd64
 stripped ELF binary for [glibc](https://www.gnu.org/software/libc).
@@ -176,3 +176,7 @@ $ sudo su -
 # molecule converge
 # molecule verify
 ```
+
+## Lua bindings
+
+A Lua binding is available. See [the README](lua/README.md) for more information.

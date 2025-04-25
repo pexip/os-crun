@@ -55,12 +55,10 @@ The following fields contain the primary properties that constitute a Descriptor
 - **`artifactType`** *string*
 
   This OPTIONAL property contains the type of an artifact when the descriptor points to an artifact.
-  This is the value of `artifactType` when the descriptor references an [artifact manifest](artifact.md).
   This is the value of the config descriptor `mediaType` when the descriptor references an [image manifest](manifest.md).
+  If defined, the value MUST comply with [RFC 6838][rfc6838], including the [naming requirements in its section 4.2][rfc6838-s4.2], and MAY be registered with [IANA][iana].
 
 Descriptors pointing to [`application/vnd.oci.image.manifest.v1+json`](manifest.md) SHOULD include the extended field `platform`, see [Image Index Property Descriptions](image-index.md#image-index-property-descriptions) for details.
-
-Descriptors pointing to [`application/vnd.oci.artifact.manifest.v1+json`](artifact.md) SHOULD include the extended field `artifactType`.
 
 ### Reserved
 
@@ -90,12 +88,12 @@ See also [Registered Algorithms](#registered-algorithms).
 
 Some example digest strings include the following:
 
-digest                                                                    | algorithm           | Registered |
---------------------------------------------------------------------------|---------------------|------------|
-`sha256:6c3c624b58dbbcd3c0dd82b4c53f04194d1247c6eebdaab7c610cf7d66709b3b` | [SHA-256](#sha-256) | Yes        |
-`sha512:401b09eab3c013d4ca54922bb802bec8fd5318192b0a75f201d8b372742...`   | [SHA-512](#sha-512) | Yes        |
-`multihash+base58:QmRZxt2b1FVZPNqd8hsiykDL3TdBDeTSPX9Kv46HmX4Gx8`         | Multihash           | No         |
-`sha256+b64u:LCa0a2j_xo_5m0U8HTBBNBNCLXBkg7-g-YpeiGJm564`                 | SHA-256 with urlsafe base64 | No |
+| digest                                                                    | algorithm                   | Registered |
+|---------------------------------------------------------------------------|-----------------------------|------------|
+| `sha256:6c3c624b58dbbcd3c0dd82b4c53f04194d1247c6eebdaab7c610cf7d66709b3b` | [SHA-256](#sha-256)         | Yes        |
+| `sha512:401b09eab3c013d4ca54922bb802bec8fd5318192b0a75f201d8b372742...`   | [SHA-512](#sha-512)         | Yes        |
+| `multihash+base58:QmRZxt2b1FVZPNqd8hsiykDL3TdBDeTSPX9Kv46HmX4Gx8`         | Multihash                   | No         |
+| `sha256+b64u:LCa0a2j_xo_5m0U8HTBBNBNCLXBkg7-g-YpeiGJm564`                 | SHA-256 with urlsafe base64 | No         |
 
 Please see [Registered Algorithms](#registered-algorithms) for a list of registered algorithms.
 
@@ -127,7 +125,7 @@ Function `H` returns the hash of `C` in bytes and is passed to function `Encode`
 The result `verified` is true if `ID(C)` is equal to `D`, confirming that `C` is the content identified by `D`.
 After verification, the following is true:
 
-```
+```text
 D == ID(C) == '<alg>:' + Encode(H(C))
 ```
 
@@ -205,7 +203,7 @@ In the following example, the descriptor indicates the type of artifact it is re
 
 ```json,title=Content%20Descriptor&mediatype=application/vnd.oci.descriptor.v1%2Bjson
 {
-  "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
+  "mediaType": "application/vnd.oci.image.manifest.v1+json",
   "size": 123,
   "digest": "sha256:87923725d74f4bfb94c9e86d64170f7521aad8221a5de834851470ca142da630",
   "artifactType": "application/vnd.example.sbom.v1"

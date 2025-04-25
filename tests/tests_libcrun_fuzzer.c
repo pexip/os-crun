@@ -36,6 +36,12 @@
 
 static int test_mode = -1;
 
+extern int compare_rdt_configurations (const char *a, const char *b);
+
+#ifdef HAVE_SYSTEMD
+extern int cpuset_string_to_bitmask (const char *str, char **out, size_t *out_size, libcrun_error_t *err);
+#endif
+
 static char *
 make_nul_terminated (uint8_t *buf, size_t len)
 {
@@ -407,9 +413,31 @@ run_one_test (int mode, uint8_t *buf, size_t len)
       test_parse_idmapped_mounts (buf, len);
       break;
 
+    case 8:
+      {
+        cleanup_free char *a = make_nul_terminated (buf, len / 2);
+        cleanup_free char *b = make_nul_terminated (buf + len / 2, len / 2);
+        compare_rdt_configurations (a, b);
+      }
+      break;
+
+    case 9:
+      {
+#ifdef HAVE_SYSTEMD
+        libcrun_error_t err = NULL;
+        cleanup_free char *a = make_nul_terminated (buf, len);
+        cleanup_free char *out = NULL;
+        size_t len;
+
+        cpuset_string_to_bitmask (a, &out, &len, &err);
+        crun_error_release (&err);
+#endif
+      }
+      break;
+
       /* ALL mode.  */
     case -1:
-      for (i = 0; i <= 5; i++)
+      for (i = 0; i <= 8; i++)
         run_one_test (i, buf, len);
       break;
 
@@ -469,7 +497,7 @@ main (int argc, char **argv)
       return LLVMFuzzerTestOneInput (content, len);
     }
 #ifdef FUZZER
-  extern void HF_ITER (uint8_t * *buf, size_t * len);
+  extern void HF_ITER (uint8_t **buf, size_t *len);
   for (;;)
     {
       size_t len;

@@ -45,8 +45,14 @@ extern struct custom_handler_s handler_wasmedge;
 #if HAVE_DLOPEN && HAVE_WASMER
 extern struct custom_handler_s handler_wasmer;
 #endif
+#if HAVE_DLOPEN && HAVE_WAMR
+extern struct custom_handler_s handler_wamr;
+#endif
 #if HAVE_DLOPEN && HAVE_MONO
 extern struct custom_handler_s handler_mono;
+#endif
+#if HAVE_DLOPEN && HAVE_SPIN
+extern struct custom_handler_s handler_spin;
 #endif
 
 static struct custom_handler_s *static_handlers[] = {
@@ -62,8 +68,14 @@ static struct custom_handler_s *static_handlers[] = {
 #if HAVE_DLOPEN && HAVE_WASMTIME
   &handler_wasmtime,
 #endif
+#if HAVE_DLOPEN && HAVE_WAMR
+  &handler_wamr,
+#endif
 #if HAVE_DLOPEN && HAVE_MONO
   &handler_mono,
+#endif
+#if HAVE_DLOPEN && HAVE_SPIN
+  &handler_spin,
 #endif
   NULL,
 };
@@ -174,7 +186,7 @@ libcrun_handler_manager_load_directory (struct custom_handler_manager_s *manager
 
       handle = dlopen (fpath, RTLD_NOW);
       if (UNLIKELY (handle == NULL))
-        return crun_make_error (err, 0, "cannot load `%s`: %s", fpath, dlerror ());
+        return crun_make_error (err, 0, "cannot load `%s`: `%s`", fpath, dlerror ());
 
       ret = handler_manager_add_so (manager, handle, err);
       if (UNLIKELY (ret < 0))
@@ -293,7 +305,7 @@ libcrun_configure_handler (struct custom_handler_manager_s *manager,
       struct custom_handler_s *h;
 
       if (manager == NULL)
-        return crun_make_error (err, 0, "handler requested but no manager configured: `%s`", context->handler);
+        return crun_make_error (err, 0, "handler requested but no manager configured: `%s`", explicit_handler);
 
       h = handler_by_name (manager, explicit_handler);
       if (h)

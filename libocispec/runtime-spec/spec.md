@@ -13,11 +13,11 @@ The execution environment is specified to ensure that applications running insid
 
 Platforms defined by this specification are:
 
-* `linux`: [runtime.md](runtime.md), [config.md](config.md), [config-linux.md](config-linux.md), and [runtime-linux.md](runtime-linux.md).
-* `solaris`: [runtime.md](runtime.md), [config.md](config.md), and [config-solaris.md](config-solaris.md).
-* `windows`: [runtime.md](runtime.md), [config.md](config.md), and [config-windows.md](config-windows.md).
-* `vm`: [runtime.md](runtime.md), [config.md](config.md), and [config-vm.md](config-vm.md).
-* `zos`: [runtime.md](runtime.md), [config.md](config.md), and [config-zos.md](config-zos.md).
+* `linux`: [runtime.md](runtime.md), [config.md](config.md), [features.md](features.md), [config-linux.md](config-linux.md), [runtime-linux.md](runtime-linux.md), and [features-linux.md](features-linux.md).
+* `solaris`: [runtime.md](runtime.md), [config.md](config.md), [features.md](features.md), and [config-solaris.md](config-solaris.md).
+* `windows`: [runtime.md](runtime.md), [config.md](config.md), [features.md](features.md), and [config-windows.md](config-windows.md).
+* `vm`: [runtime.md](runtime.md), [config.md](config.md), [features.md](features.md), and [config-vm.md](config-vm.md).
+* `zos`: [runtime.md](runtime.md), [config.md](config.md), [features.md](features.md), and [config-zos.md](config-zos.md).
 
 # <a name="ociRuntimeSpecTOC" />Table of Contents
 
@@ -33,6 +33,8 @@ Platforms defined by this specification are:
     - [Windows-specific Configuration](config-windows.md)
     - [Virtual-Machine-specific Configuration](config-vm.md)
     - [z/OS-specific Configuration](config-zos.md)
+- [Features Structure](features.md)
+    - [Linux-specific Features Structure](features-linux.md)
 - [Glossary](glossary.md)
 
 # <a name="ociRuntimeSpecNotationalConventions" />Notational Conventions
@@ -45,6 +47,6 @@ An implementation is not compliant for a given CPU architecture if it fails to s
 An implementation is compliant for a given CPU architecture if it satisfies all the MUST, REQUIRED, and SHALL requirements for the [platforms](#platforms) it implements.
 
 
-[c99-unspecified]: http://www.open-std.org/jtc1/sc22/wg14/www/C99RationaleV5.10.pdf#page=18
-[oci]: http://www.opencontainers.org
+[c99-unspecified]: https://www.open-std.org/jtc1/sc22/wg14/www/C99RationaleV5.10.pdf#page=18
+[oci]: https://opencontainers.org
 [rfc2119]: https://www.rfc-editor.org/rfc/rfc2119.html
