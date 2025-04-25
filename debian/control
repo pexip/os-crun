@@ -24,7 +24,7 @@ Rules-Requires-Root: no
 Homepage: https://github.com/containers/crun
 Vcs-Git: https://salsa.debian.org/debian/crun.git
 Vcs-Browser: https://salsa.debian.org/debian/crun
-XS-Pexip-Upstream: http://ftp.debian.org/debian/ bookworm
+XS-Pexip-Upstream: http://deb.debian.org/debian/ trixie
 
 Package: crun
 Architecture: any
