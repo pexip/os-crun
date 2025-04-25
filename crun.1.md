@@ -60,10 +60,10 @@ Resume the processes in the container.
 Update container resource constraints.
 
 **checkpoint**
-Checkpoint a running container using CRIU
+Checkpoint a running container using CRIU.
 
 **restore**
-Restore a container from a checkpoint
+Restore a container from a checkpoint.
 # STATE
 
 By default, when running as root user, crun saves its state under the
@@ -97,6 +97,10 @@ If no backend is specified, then *file:* is used by default.
 **--log-format**=_FORMAT_
 Define the format of the log messages.  It can either be **text**, or
 **json**.  The default is **text**.
+
+**--log-level**=_LEVEL_
+Define the log level.  It can either be **debug**, **warning** or **error**.
+The default is **error**.
 
 **--no-pivot**
 Use `chroot(2)` instead of `pivot_root(2)` when creating the container.
@@ -386,6 +390,17 @@ Where to write the PID of the container
 Specify which CRIU manage cgroup mode should be used. Permitted values are
 **soft**, **ignore**, **full** or **strict**. Default is **soft**.
 
+**--lsm-profile**=_TYPE_:_NAME_
+Specify an LSM profile to be used during restore.
+_TYPE_ can be either **apparmor** or **selinux**.
+
+**--lsm-mount-context**=_VALUE_
+Specify a new LSM mount context to be used during restore.
+This option replaces an existing mount context information
+with the specified value. This is useful when restoring
+a container into an existing Pod and selinux labels
+need to be changed during restore.
+
 # Extensions to OCI
 
 ## `run.oci.mount_context_type=context`
@@ -466,11 +481,6 @@ mount cgroup -t cgroup /sys/fs/cgroup/systemd -o none,name=systemd,xattr
 chown -R the_user.the_user /sys/fs/cgroup/systemd
 ```
 
-## `run.oci.timens_offset=ID SEC NSEC`
-
-Specify the offset to be written to /proc/self/timens_offsets when creating
-a time namespace.
-
 ## `run.oci.systemd.subgroup=SUBGROUP`
 
 Override the name for the systemd sub cgroup created under the systemd
@@ -546,6 +556,14 @@ wasm module is relayed back via crun.
 If the `tmpcopyup` option is specified for a tmpfs, then the path that
 is shadowed by the tmpfs mount is recursively copied up to the tmpfs
 itself.
+
+## copy-symlink mount options
+
+If the `copy-symlink` option is specified, if the source of a bind
+mount is a symlink, the symlink is recreated at the specified
+destination instead of attempting a mount that would resolve the
+symlink itself.  If the destination already exists and it is not a
+symlink with the expected content, crun will return an error.
 
 ## r$FLAG mount options
 
@@ -645,6 +663,10 @@ automatically created even if it is not specified in the config file.
 The current user is mapped to the ID 0 in the container, and any
 additional id specified in the files `/etc/subuid` and `/etc/subgid`
 is automatically added starting with ID 1.
+
+# CGROUP v1
+
+Support for cgroup v1 is deprecated and will be removed in a future release.
 
 # CGROUP v2
 

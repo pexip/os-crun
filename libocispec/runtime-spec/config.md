@@ -68,19 +68,103 @@ For Linux, the parameters are as documented in [mount(2)][mount.2] system call m
 For Solaris, the mount entry corresponds to the 'fs' resource in the [zonecfg(1M)][zonecfg.1m] man page.
 
 * **`destination`** (string, REQUIRED) Destination of mount point: path inside container.
-    This value MUST be an absolute path.
-    * Windows: one mount destination MUST NOT be nested within another mount (e.g., c:\\foo and c:\\foo\\bar).
-    * Solaris: corresponds to "dir" of the fs resource in [zonecfg(1M)][zonecfg.1m].
+    * Linux: This value SHOULD be an absolute path.
+      For compatibility with old tools and configurations, it MAY be a relative path, in which case it MUST be interpreted as relative to "/".
+      Relative paths are **deprecated**.
+    * Windows: This value MUST be an absolute path.
+      One mount destination MUST NOT be nested within another mount (e.g., c:\\foo and c:\\foo\\bar).
+    * Solaris: This value MUST be an absolute path.
+      Corresponds to "dir" of the fs resource in [zonecfg(1M)][zonecfg.1m].
+    * For all other platforms: This value MUST be an absolute path.
 * **`source`** (string, OPTIONAL) A device name, but can also be a file or directory name for bind mounts or a dummy.
     Path values for bind mounts are either absolute or relative to the bundle.
     A mount is a bind mount if it has either `bind` or `rbind` in the options.
     * Windows: a local directory on the filesystem of the container host. UNC paths and mapped drives are not supported.
     * Solaris: corresponds to "special" of the fs resource in [zonecfg(1M)][zonecfg.1m].
 * **`options`** (array of strings, OPTIONAL) Mount options of the filesystem to be used.
-    * Linux: supported options are listed in the [mount(8)][mount.8] man page.
-      Note both [filesystem-independent][mount.8-filesystem-independent] and [filesystem-specific][mount.8-filesystem-specific] options are listed.
+    * Linux: See [Linux mount options](#configLinuxMountOptions) below.
     * Solaris: corresponds to "options" of the fs resource in [zonecfg(1M)][zonecfg.1m].
     * Windows: runtimes MUST support `ro`, mounting the filesystem read-only when `ro` is given.
+
+### <a name="configLinuxMountOptions" />Linux mount options
+
+Runtimes MUST/SHOULD/MAY implement the following option strings for Linux:
+
+ Option name      | Requirement | Description
+------------------|-------------|-----------------------------------------------------
+ `async`          | MUST        | [^1]
+ `atime`          | MUST        | [^1]
+ `bind`           | MUST        | Bind mount [^2]
+ `defaults`       | MUST        | [^1]
+ `dev`            | MUST        | [^1]
+ `diratime`       | MUST        | [^1]
+ `dirsync`        | MUST        | [^1]
+ `exec`           | MUST        | [^1]
+ `iversion`       | MUST        | [^1]
+ `lazytime`       | MUST        | [^1]
+ `loud`           | MUST        | [^1]
+ `mand`           | MAY         | [^1] (Deprecated in kernel 5.15, util-linux 2.38)
+ `noatime`        | MUST        | [^1]
+ `nodev`          | MUST        | [^1]
+ `nodiratime`     | MUST        | [^1]
+ `noexec`         | MUST        | [^1]
+ `noiversion`     | MUST        | [^1]
+ `nolazytime`     | MUST        | [^1]
+ `nomand`         | MAY         | [^1]
+ `norelatime`     | MUST        | [^1]
+ `nostrictatime`  | MUST        | [^1]
+ `nosuid`         | MUST        | [^1]
+ `nosymfollow`    | SHOULD      | [^1] (Introduced in kernel 5.10, util-linux 2.38)
+ `private`        | MUST        | Bind mount propagation [^2]
+ `ratime`         | SHOULD      | Recursive `atime` [^3]
+ `rbind`          | MUST        | Recursive bind mount [^2]
+ `rdev`           | SHOULD      | Recursive `dev` [^3]
+ `rdiratime`      | SHOULD      | Recursive `diratime` [^3]
+ `relatime`       | MUST        | [^1]
+ `remount`        | MUST        | [^1]
+ `rexec`          | SHOULD      | Recursive `dev` [^3]
+ `rnoatime`       | SHOULD      | Recursive `noatime` [^3]
+ `rnodiratime`    | SHOULD      | Recursive `nodiratime` [^3]
+ `rnoexec`        | SHOULD      | Recursive `noexec` [^3]
+ `rnorelatime`    | SHOULD      | Recursive `norelatime` [^3]
+ `rnostrictatime` | SHOULD      | Recursive `nostrictatime` [^3]
+ `rnosuid`        | SHOULD      | Recursive `nosuid` [^3]
+ `rnosymfollow`   | SHOULD      | Recursive `nosymfollow` [^3]
+ `ro`             | MUST        | [^1]
+ `rprivate`       | MUST        | Bind mount propagation [^2]
+ `rrelatime  `    | SHOULD      | Recursive `relatime` [^3]
+ `rro`            | SHOULD      | Recursive `ro` [^3]
+ `rrw`            | SHOULD      | Recursive `rw` [^3]
+ `rshared`        | MUST        | Bind mount propagation [^2]
+ `rslave`         | MUST        | Bind mount propagation [^2]
+ `rstrictatime`   | SHOULD      | Recursive `strictatime` [^3]
+ `rsuid`          | SHOULD      | Recursive `suid` [^3]
+ `rsymfollow`     | SHOULD      | Recursive `symfollow` [^3]
+ `runbindable`    | MUST        | Bind mount propagation [^2]
+ `rw`             | MUST        | [^1]
+ `shared`         | MUST        | [^1]
+ `silent`         | MUST        | [^1]
+ `slave`          | MUST        | Bind mount propagation [^2]
+ `strictatime`    | MUST        | [^1]
+ `suid`           | MUST        | [^1]
+ `symfollow`      | SHOULD      | Opposite of `nosymfollow`
+ `sync`           | MUST        | [^1]
+ `tmpcopyup`      | MAY         | copy up the contents to a tmpfs
+ `unbindable`     | MUST        | Bind mount propagation [^2]
+ `idmap`          | SHOULD      | Indicates that the mount MUST have an idmapping applied. This option SHOULD NOT be passed to the underlying [`mount(2)`][mount.2] call. If `uidMappings` or `gidMappings` are specified for the mount, the runtime MUST use those values for the mount's mapping. If they are not specified, the runtime MAY use the container's user namespace mapping, otherwise an [error MUST be returned](runtime.md#errors).  If there are no `uidMappings` and `gidMappings` specified and the container isn't using user namespaces, an [error MUST be returned](runtime.md#errors). This SHOULD be implemented using [`mount_setattr(MOUNT_ATTR_IDMAP)`][mount_setattr.2], available since Linux 5.12.
+ `ridmap`         | SHOULD      | Indicates that the mount MUST have an idmapping applied, and the mapping is applied recursively [^3]. This option SHOULD NOT be passed to the underlying [`mount(2)`][mount.2] call. If `uidMappings` or `gidMappings` are specified for the mount, the runtime MUST use those values for the mount's mapping. If they are not specified, the runtime MAY use the container's user namespace mapping, otherwise an [error MUST be returned](runtime.md#errors).  If there are no `uidMappings` and `gidMappings` specified and the container isn't using user namespaces, an [error MUST be returned](runtime.md#errors). This SHOULD be implemented using [`mount_setattr(MOUNT_ATTR_IDMAP)`][mount_setattr.2], available since Linux 5.12.
+
+[^1]: Corresponds to [`mount(8)` (filesystem-independent)][mount.8-filesystem-independent].
+[^2]: Corresponds to [bind mounts and shared subtrees][mount-bind].
+[^3]: These `AT_RECURSIVE` options need kernel 5.12 or later. See [`mount_setattr(2)`][mount_setattr.2]
+
+The "MUST" options correspond to [`mount(8)`][mount.8].
+
+Runtimes MAY also implement custom option strings that are not listed in the table above.
+If a custom option string is already recognized by [`mount(8)`][mount.8], the runtime SHOULD follow the behavior of [`mount(8)`][mount.8].
+
+Runtimes SHOULD treat unknown options as [filesystem-specific ones][mount.8-filesystem-specific])
+and pass those as a comma-separated string to the fifth (`const void *data`) argument of [`mount(2)`][mount.2].
 
 ### Example (Windows)
 
@@ -101,10 +185,16 @@ For POSIX platforms the `mounts` structure has the following fields:
 * **`type`** (string, OPTIONAL) The type of the filesystem to be mounted.
     * Linux: filesystem types supported by the kernel as listed in */proc/filesystems* (e.g., "minix", "ext2", "ext3", "jfs", "xfs", "reiserfs", "msdos", "proc", "nfs", "iso9660"). For bind mounts (when `options` include either `bind` or `rbind`), the type is a dummy, often "none" (not listed in */proc/filesystems*).
     * Solaris: corresponds to "type" of the fs resource in [zonecfg(1M)][zonecfg.1m].
-* **`uidMappings`** (array of type LinuxIDMapping, OPTIONAL) The mapping to convert UIDs from the source file system to the destination mount point.\
-The format is the same as [user namespace mappings](config-linux.md#user-namespace-mappings).
+* **`uidMappings`** (array of type LinuxIDMapping, OPTIONAL) The mapping to convert UIDs from the source file system to the destination mount point.
+  This SHOULD be implemented using [`mount_setattr(MOUNT_ATTR_IDMAP)`][mount_setattr.2], available since Linux 5.12.
+  If specified, the `options` field of the `mounts` structure SHOULD contain either `idmap` or `ridmap` to specify whether the mapping should be applied recursively for `rbind` mounts, as well as to ensure that older runtimes will not silently ignore this field.
+  The format is the same as [user namespace mappings](config-linux.md#user-namespace-mappings).
+  If specified, it MUST be specified along with `gidMappings`.
 * **`gidMappings`** (array of type LinuxIDMapping, OPTIONAL) The mapping to convert GIDs from the source file system to the destination mount point.
-For more details see `uidMappings`.
+  This SHOULD be implemented using [`mount_setattr(MOUNT_ATTR_IDMAP)`][mount_setattr.2], available since Linux 5.12.
+  If specified, the `options` field of the `mounts` structure SHOULD contain either `idmap` or `ridmap` to specify whether the mapping should be applied recursively for `rbind` mounts, as well as to ensure that older runtimes will not silently ignore this field.
+  For more details see `uidMappings`.
+  If specified, it MUST be specified along with `uidMappings`.
 
 
 ### Example (Linux)
@@ -215,8 +305,53 @@ For Linux-based systems, the `process` object supports the following process-spe
 
     This is a per-process setting, where as [`disableOOMKiller`](config-linux.md#memory) is scoped for a memory cgroup.
     For more information on how these two settings work together, see [the memory cgroup documentation section 10. OOM Contol][cgroup-v1-memory_2].
+* **`scheduler`** (object, OPTIONAL) is an object describing the scheduler properties for the process.  The `scheduler` contains the following properties:
+
+    * **`policy`** (string, REQUIRED) represents the scheduling policy.  A valid list of values is:
+
+        * `SCHED_OTHER`
+        * `SCHED_FIFO`
+        * `SCHED_RR`
+        * `SCHED_BATCH`
+        * `SCHED_ISO`
+        * `SCHED_IDLE`
+        * `SCHED_DEADLINE`
+
+    * **`nice`** (int32, OPTIONAL) is the nice value for the process, affecting its priority. A lower nice value corresponds to a higher priority. If not set, the runtime must use the value 0.
+    * **`priority`** (int32, OPTIONAL) represents the static priority of the process, used by real-time policies like SCHED_FIFO and SCHED_RR. If not set, the runtime must use the value 0.
+    * **`flags`** (array of strings, OPTIONAL) is an array of strings representing scheduling flags.  A valid list of values is:
+
+        * `SCHED_FLAG_RESET_ON_FORK`
+        * `SCHED_FLAG_RECLAIM`
+        * `SCHED_FLAG_DL_OVERRUN`
+        * `SCHED_FLAG_KEEP_POLICY`
+        * `SCHED_FLAG_KEEP_PARAMS`
+        * `SCHED_FLAG_UTIL_CLAMP_MIN`
+        * `SCHED_FLAG_UTIL_CLAMP_MAX`
+
+    * **`runtime`** (uint64, OPTIONAL) represents the amount of time in nanoseconds during which the process is allowed to run in a given period, used by the deadline scheduler. If not set, the runtime must use the value 0.
+    * **`deadline`** (uint64, OPTIONAL) represents the absolute deadline for the process to complete its execution, used by the deadline scheduler. If not set, the runtime must use the value 0.
+    * **`period`** (uint64, OPTIONAL) represents the length of the period in nanoseconds used for determining the process runtime, used by the deadline scheduler. If not set, the runtime must use the value 0.
 * **`selinuxLabel`** (string, OPTIONAL) specifies the SELinux label for the process.
     For more information about SELinux, see  [SELinux documentation][selinux].
+* **`ioPriority`** (object, OPTIONAL) configures the I/O priority settings for the container's processes within the process group.
+    The I/O priority settings will be automatically applied to the entire process group, affecting all processes within the container.
+    The following properties are available:
+
+    * **`class`** (string, REQUIRED) specifies the I/O scheduling class. Possible values are `IOPRIO_CLASS_RT`, `IOPRIO_CLASS_BE`, and `IOPRIO_CLASS_IDLE`.
+    * **`priority`** (int, REQUIRED) specifies the priority level within the class. The value should be an integer ranging from 0 (highest) to 7 (lowest).
+* **`execCPUAffinity`** (object, OPTIONAL) specifies CPU affinity used to execute the process.
+    This setting is not applicable to the container's init process.
+    The following properties are available:
+    * **`initial`** (string, OPTIONAL) is a list of CPUs a runtime parent
+      process to be run on initially, before the transition to container's
+      cgroup. This is a a comma-separated list, with dashes to represent
+      ranges. For example, `0-3,7` represents CPUs 0,1,2,3, and 7.
+    * **`final`** (string, OPTIONAL) is a list of CPUs the process will be run
+      on after the transition to container's cgroup. The format is the same as
+      for `initial`. If omitted or empty, runtime SHOULD NOT change process'
+      CPU affinity after the process is moved to container's cgroup, and the
+      final affinity is determined by the Linux kernel.
 
 ### <a name="configUser" />User
 
@@ -258,6 +393,10 @@ _Note: symbolic name for uid and gid, such as uname and gname respectively, are 
     ],
     "apparmorProfile": "acme_secure_profile",
     "selinuxLabel": "system_u:system_r:svirt_lxc_net_t:s0:c124,c675",
+    "ioPriority": {
+        "class": "IOPRIO_CLASS_IDLE",
+        "priority": 4
+    },
     "noNewPrivileges": true,
     "capabilities": {
         "bounding": [
@@ -289,7 +428,11 @@ _Note: symbolic name for uid and gid, such as uname and gname respectively, are 
             "hard": 1024,
             "soft": 1024
         }
-    ]
+    ],
+    "execCPUAffinity": {
+        "initial": "7",
+        "final": "0-3,7"
+    }
 }
 ```
 ### Example (Solaris)
@@ -442,8 +585,9 @@ The [state](runtime.md#state) of the container MUST be passed to hooks over stdi
 
 ### <a name="configHooksPrestart" />Prestart
 
-The `prestart` hooks MUST be called after the [`start`](runtime.md#start) operation is called but [before the user-specified program command is executed](runtime.md#lifecycle).
+The `prestart` hooks MUST be called as part of the [`create`](runtime.md#create) operation after the runtime environment has been created (according to the configuration in config.json) but before the `pivot_root` or any equivalent operation has been executed.
 On Linux, for example, they are called after the container namespaces are created, so they provide an opportunity to customize the container (e.g. the network namespace could be specified in this hook).
+The `prestart` hooks MUST be called before the `createRuntime` hooks.
 
 Note: `prestart` hooks were deprecated in favor of `createRuntime`, `createContainer` and `startContainer` hooks, which allow more granular hook control during the create and start phase.
 
@@ -460,8 +604,6 @@ The `createRuntime` hooks MUST be executed in the [runtime namespace](glossary.m
 On Linux, for example, they are called after the container namespaces are created, so they provide an opportunity to customize the container (e.g. the network namespace could be specified in this hook).
 
 The definition of `createRuntime` hooks is currently underspecified and hooks authors, should only expect from the runtime that the mount namespace have been created and the mount operations performed. Other operations such as cgroups and SELinux/AppArmor labels might not have been performed by the runtime.
-
-Note: `runc` originally implemented `prestart` hooks contrary to the spec, namely as part of the `create` operation (instead of during the `start` operation). This incorrect implementation actually corresponds to `createRuntime` hooks. For runtimes that implement the deprecated `prestart` hooks as `createRuntime` hooks, `createRuntime` hooks MUST be called after the `prestart` hooks.
 
 ### <a name="configHooksCreateContainer" />CreateContainer Hooks
 
@@ -573,7 +715,21 @@ If there are no annotations then this property MAY either be absent or an empty 
 Keys MUST be strings.
 Keys MUST NOT be an empty string.
 Keys SHOULD be named using a reverse domain notation - e.g. `com.example.myKey`.
-Keys using the `org.opencontainers` namespace are reserved and MUST NOT be used by subsequent specifications.
+
+The `org.opencontainers` namespace for keys is reserved for use by this specification, annotations using keys in this namespace MUST be as described in this section.
+The following keys in the `org.opencontainers` namespaces MAY be used:
+|                   Key                   | Definition                                                         |
+| --------------------------------------- | -----------------------------------------------------------------------------------------------------------------------------------|
+| `org.opencontainers.image.os`           | Indicates the operating system the container image was built to run on. The annotation value MUST have a valid value for the `os` property as defined in [the OCI image specification][oci-image-config-properties]. This annotation SHOULD only be used in accordance with the [OCI image specification's runtime conversion specification][oci-image-conversion]. |
+| `org.opencontainers.image.os.version`   | Indicates the operating system version targeted by the container image. The annotation value MUST have a valid value for the `os.version` property as defined in [the OCI image specification][oci-image-config-properties]. This annotation SHOULD only be used in accordance with the [OCI image specification's runtime conversion specification][oci-image-conversion]. |
+| `org.opencontainers.image.os.features`  | Indicates mandatory operating system features required by the container image. The annotation value MUST have a valid value for the `os.features` property as defined in [the OCI image specification][oci-image-config-properties]. This annotation SHOULD only be used in accordance with the [OCI image specification's runtime conversion specification][oci-image-conversion]. |
+| `org.opencontainers.image.architecture` | Indicates the architecture that binaries in the container image are built to run on. The annotation value MUST have a valid value for the `architecture` property as defined in [the OCI image specification][oci-image-config-properties]. This annotation SHOULD only be used in accordance with the [OCI image specification's runtime conversion specification][oci-image-conversion]. |
+| `org.opencontainers.image.variant`      | Indicates the variant of the architecture that binaries in the container image are built to run on. The annotation value MUST have a valid value for the `variant` property as defined in [the OCI image specification][oci-image-config-properties]. This annotation SHOULD only be used in accordance with the [OCI image specification's runtime conversion specification][oci-image-conversion]. |
+| `org.opencontainers.image.author`       | Indicates the author of the container image. The annotation value MUST have a valid value for the `author` property as defined in [the OCI image specification][oci-image-config-properties]. This annotation SHOULD only be used in accordance with the [OCI image specification's runtime conversion specification][oci-image-conversion]. |
+| `org.opencontainers.image.created`      | Indicates the date and time when the container image was created. The annotation value MUST have a valid value for the `created` property as defined in [the OCIimage specification][oci-image-config-properties]. This annotation SHOULD only be used in accordance with the [OCI image specification's runtime conversion specification][oci-image-conversion]. |
+| `org.opencontainers.image.stopSignal`   | Indicates signal that SHOULD be sent by the container runtimes to [kill the container](runtime.md#kill). The annotation value MUST have a valid value for the `config.StopSignal` property as defined in [the OCI image specification][oci-image-config-properties]. This annotation SHOULD only be used in accordance with the [OCI image specification's runtime conversion specification][oci-image-conversion]. |
+
+All other keys in the `org.opencontainers` namespace not specified in this above table are reserved and MUST NOT be used by subsequent specifications.
 Runtimes MUST handle unknown annotation keys like any other [unknown property](#extensibility).
 
 Values MUST be strings.
@@ -659,6 +815,10 @@ Here is a full example `config.json` for reference.
         "apparmorProfile": "acme_secure_profile",
         "oomScoreAdj": 100,
         "selinuxLabel": "system_u:system_r:svirt_lxc_net_t:s0:c124,c675",
+        "ioPriority": {
+            "class": "IOPRIO_CLASS_IDLE",
+            "priority": 4
+        },
         "noNewPrivileges": true
     },
     "root": {
@@ -929,6 +1089,16 @@ Here is a full example `config.json` for reference.
                 }
             ]
         },
+        "timeOffsets": {
+            "monotonic": {
+                "secs": 172800,
+                "nanosecs": 0
+            },
+            "boottime": {
+                "secs": 604800,
+                "nanosecs": 0
+            }
+        },
         "namespaces": [
             {
                 "type": "pid"
@@ -950,6 +1120,9 @@ Here is a full example `config.json` for reference.
             },
             {
                 "type": "cgroup"
+            },
+            {
+                "type": "time"
             }
         ],
         "maskedPaths": [
@@ -978,22 +1151,26 @@ Here is a full example `config.json` for reference.
 
 [apparmor]: https://wiki.ubuntu.com/AppArmor
 [cgroup-v1-memory_2]: https://www.kernel.org/doc/Documentation/cgroup-v1/memory.txt
-[selinux]:http://selinuxproject.org/page/Main_Page
+[selinux]:https://selinuxproject.org/page/Main_Page
 [no-new-privs]: https://www.kernel.org/doc/Documentation/prctl/no_new_privs.txt
 [proc_2]: https://www.kernel.org/doc/Documentation/filesystems/proc.txt
-[umask.2]: http://pubs.opengroup.org/onlinepubs/009695399/functions/umask.html
-[semver-v2.0.0]: http://semver.org/spec/v2.0.0.html
-[ieee-1003.1-2008-xbd-c8.1]: http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html#tag_08_01
-[ieee-1003.1-2008-functions-exec]: http://pubs.opengroup.org/onlinepubs/9699919799/functions/exec.html
-[naming-a-volume]: https://aka.ms/nb3hqb
+[umask.2]: https://pubs.opengroup.org/onlinepubs/009695399/functions/umask.html
+[semver-v2.0.0]: https://semver.org/spec/v2.0.0.html
+[ieee-1003.1-2008-xbd-c8.1]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html#tag_08_01
+[ieee-1003.1-2008-functions-exec]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/exec.html
+[naming-a-volume]: https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-volume
+[oci-image-config-properties]: https://github.com/opencontainers/image-spec/blob/v1.1.0-rc2/config.md#properties
+[oci-image-conversion]: https://github.com/opencontainers/image-spec/blob/v1.1.0-rc2/conversion.md
 
-[capabilities.7]: http://man7.org/linux/man-pages/man7/capabilities.7.html
-[mount.2]: http://man7.org/linux/man-pages/man2/mount.2.html
-[mount.8]: http://man7.org/linux/man-pages/man8/mount.8.html
-[mount.8-filesystem-independent]: http://man7.org/linux/man-pages/man8/mount.8.html#FILESYSTEM-INDEPENDENT_MOUNT_OPTIONS
-[mount.8-filesystem-specific]: http://man7.org/linux/man-pages/man8/mount.8.html#FILESYSTEM-SPECIFIC_MOUNT_OPTIONS
-[getrlimit.2]: http://man7.org/linux/man-pages/man2/getrlimit.2.html
-[getrlimit.3]: http://pubs.opengroup.org/onlinepubs/9699919799/functions/getrlimit.html
-[stdin.3]: http://man7.org/linux/man-pages/man3/stdin.3.html
-[uts-namespace.7]: http://man7.org/linux/man-pages/man7/namespaces.7.html
-[zonecfg.1m]: http://docs.oracle.com/cd/E86824_01/html/E54764/zonecfg-1m.html
+[capabilities.7]: https://man7.org/linux/man-pages/man7/capabilities.7.html
+[mount.2]: https://man7.org/linux/man-pages/man2/mount.2.html
+[mount.8]: https://man7.org/linux/man-pages/man8/mount.8.html
+[mount.8-filesystem-independent]: https://man7.org/linux/man-pages/man8/mount.8.html#FILESYSTEM-INDEPENDENT_MOUNT_OPTIONS
+[mount.8-filesystem-specific]: https://man7.org/linux/man-pages/man8/mount.8.html#FILESYSTEM-SPECIFIC_MOUNT_OPTIONS
+[mount_setattr.2]: https://man7.org/linux/man-pages/man2/mount_setattr.2.html
+[mount-bind]: https://docs.kernel.org/filesystems/sharedsubtree.html
+[getrlimit.2]: https://man7.org/linux/man-pages/man2/getrlimit.2.html
+[getrlimit.3]: https://pubs.opengroup.org/onlinepubs/9699919799/functions/getrlimit.html
+[stdin.3]: https://man7.org/linux/man-pages/man3/stdin.3.html
+[uts-namespace.7]: https://man7.org/linux/man-pages/man7/namespaces.7.html
+[zonecfg.1m]: https://docs.oracle.com/cd/E86824_01/html/E54764/zonecfg-1m.html

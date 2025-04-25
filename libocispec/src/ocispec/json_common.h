@@ -15,6 +15,15 @@ extern "C" {
 
 #undef linux
 
+#ifdef __MUSL__
+#undef stdin
+#undef stdout
+#undef stderr
+#define stdin stdin
+#define stdout stdout
+#define stderr stderr
+#endif
+
 // options to report error if there is unknown key found in json
 #define OPT_PARSE_STRICT 0x01
 // options to generate all key and value
@@ -210,6 +219,8 @@ typedef struct
 } json_map_string_string;
 
 void free_json_map_string_string (json_map_string_string *map);
+
+json_map_string_string *clone_map_string_string (json_map_string_string *src);
 
 json_map_string_string *make_json_map_string_string (yajl_val src, const struct parser_context *ctx, parser_error *err);
 
