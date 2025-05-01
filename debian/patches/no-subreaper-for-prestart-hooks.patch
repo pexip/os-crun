@@ -1,8 +1,8 @@
-diff --git a/src/libcrun/container.c b/src/libcrun/container.c
-index b9eba20..275e4a0 100644
---- a/src/libcrun/container.c
-+++ b/src/libcrun/container.c
-@@ -2378,6 +2378,18 @@ libcrun_container_run_internal (libcrun_container_t *container, libcrun_context_
+Index: crun/src/libcrun/container.c
+===================================================================
+--- crun.orig/src/libcrun/container.c
++++ crun/src/libcrun/container.c
+@@ -2652,6 +2652,18 @@ libcrun_container_run_internal (libcrun_
  
    /* The container is waiting that we write back.  In this phase we can launch the
       prestart hooks.  */
@@ -20,8 +20,8 @@ index b9eba20..275e4a0 100644
 +    }
    if (def->hooks && def->hooks->prestart_len)
      {
-       ret = do_hooks (def, pid, context->id, false, NULL, "created", (hook **) def->hooks->prestart,
-@@ -2392,6 +2404,15 @@ libcrun_container_run_internal (libcrun_container_t *container, libcrun_context_
+       libcrun_debug ("Running 'prestart' hooks");
+@@ -2668,6 +2680,15 @@ libcrun_container_run_internal (libcrun_
        if (UNLIKELY (ret != 0))
          goto fail;
      }
