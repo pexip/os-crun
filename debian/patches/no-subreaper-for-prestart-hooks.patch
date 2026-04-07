@@ -1,3 +1,5 @@
+Ensure that prestart hooks are parented to init
+
 Index: crun/src/libcrun/container.c
 ===================================================================
 --- crun.orig/src/libcrun/container.c
